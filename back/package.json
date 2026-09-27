@@ -20,7 +20,7 @@
     "@neon/config": "^1.8.2",
     "@neon/env": "^1.4.7",
     "@neondatabase/serverless": "^1.1.0",
-    "bun-types": "latest",
+    "@types/bun": "^1.4.2",
     "bullmq": "^6.3.9",
     "drizzle-orm": "^0.45.3",
     "elysia": "latest"

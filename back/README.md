@@ -34,10 +34,27 @@ code evaluation off at request time.
 
 ### Vercel
 
-`bun-types` is a regular dependency, not a devDependency. Vercel transpiles with a
-pruned dependency tree, and `tsconfig.json` lists `bun-types` in `types`, so leaving it
-in `devDependencies` fails the build with `TS2688: Cannot find type definition file for
-'bun-types'`.
+Do not list Bun types through `compilerOptions.types` in `tsconfig.json`. A `types` entry
+is resolved as a hard program-level reference, so if the build cannot see that package the
+whole build dies with a fatal:
+
+```
+error TS2688: Cannot find type definition file for 'bun-types'.
+  The file is in the program because:
+    Entry point of type library 'bun-types' specified in compilerOptions
+```
+
+Vercel transpiles with a pruned dependency tree, and relying on a `types` entry surviving
+that is fragile — moving the package between `devDependencies` and `dependencies` is not
+a reliable fix. Instead, `tsconfig.json` has no `types` array at all, and `@types/bun` is a
+regular `dependency`. TypeScript auto-includes everything under `node_modules/@types`, so
+the Bun globals are present whenever the declared dependency is installed.
+
+Verify changes to this area against a pruned tree, not just the dev checkout:
+
+```bash
+bun run typecheck
+```
 
 ## Local stack
 
