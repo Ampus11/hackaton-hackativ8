@@ -4,3 +4,5 @@ main = "src/worker.ts"
 # `new Function()` during startup, which is what Elysia's compiler needs.
 compatibility_date = "2025-06-01"
 compatibility_flags = ["nodejs_compat"]
+
+[previews]
