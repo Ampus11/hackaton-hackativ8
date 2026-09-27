@@ -1,4 +1,6 @@
 name = "hackaton-hackativ8-back"
 main = "src/worker.ts"
-compatibility_date = "2025-01-01"
+# Must be >= 2025-06-01: that is when the Workers runtime started permitting
+# `new Function()` during startup, which is what Elysia's compiler needs.
+compatibility_date = "2025-06-01"
 compatibility_flags = ["nodejs_compat"]

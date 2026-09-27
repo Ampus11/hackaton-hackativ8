@@ -8,10 +8,36 @@ Application API for Genomic Insight Agent. Elysia + Drizzle ORM + Neon Postgres,
 | ---------------- | ----------------------- | ------------------------------------------------------------------ |
 | Bun (local/dev)  | `src/index.ts`          | Starts an HTTP listener; also the Vercel entrypoint.               |
 | Vercel           | `src/index.ts`          | Default export is the Elysia app.                                  |
-| Cloudflare Worker| `src/worker.ts`         | Copies Worker `env` into `process.env` before dispatching a request. |
+| Cloudflare Worker| `src/worker.ts`         | `CloudflareAdapter` + `.compile()`; copies Worker `env` into `process.env`. |
 | Analysis worker  | `src/worker/analysis.ts` | Long-lived BullMQ consumer. Never a Worker or a serverless function. |
 
 `bun run dev` serves on `PORT` (default `4000`).
+
+Routes live in `src/routes/` and are shared by every runtime. `src/app.ts` builds the
+Elysia instance once so each entrypoint can configure it without duplicating routes.
+
+### Cloudflare Workers requirements
+
+Two settings are mandatory, and both cause a deploy-time failure without them:
+
+- `compatibility_date` must be `>= 2025-06-01` in `wrangler.toml`. That is when the
+  Workers runtime began permitting `new Function()` during startup, which is what
+  Elysia's compiler needs.
+- The Worker entrypoint must use `CloudflareAdapter` and call `.compile()`. Without
+  `.compile()`, Elysia composes handlers per request with `new Function()` and the
+  runtime rejects it with `EvalError: Code generation from strings disallowed`
+  (error `10021`).
+
+Do not "fix" that error by adding the `unsafe-eval` compatibility flag — raising the
+compatibility date and compiling ahead of time is the supported path and keeps dynamic
+code evaluation off at request time.
+
+### Vercel
+
+`bun-types` is a regular dependency, not a devDependency. Vercel transpiles with a
+pruned dependency tree, and `tsconfig.json` lists `bun-types` in `types`, so leaving it
+in `devDependencies` fails the build with `TS2688: Cannot find type definition file for
+'bun-types'`.
 
 ## Local stack
 

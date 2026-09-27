@@ -13,7 +13,14 @@ const analysisParams = t.Object({ id: t.String({ format: "uuid" }) });
 const analysisBody = t.Object({
 	sequenceId: t.String({ format: "uuid" }),
 	analysisType: t.String({ minLength: 1, maxLength: 64 }),
-});
+
+	// Lifecycle fields are owned by the API and the worker.
+	status: t.Optional(t.Never()),
+	queueJobId: t.Optional(t.Never()),
+	resultJson: t.Optional(t.Never()),
+	errorMessage: t.Optional(t.Never()),
+	userId: t.Optional(t.Never()),
+}, { additionalProperties: false });
 
 const failureMessage = (error: unknown) => {
 	if (error instanceof ApiError) return error.message;

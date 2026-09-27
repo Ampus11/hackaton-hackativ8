@@ -12,7 +12,7 @@ const conversationBody = t.Object({
 	projectId: t.String({ format: "uuid" }),
 	role: t.String({ minLength: 1, maxLength: 32 }),
 	content: t.String({ minLength: 1, maxLength: 100000 }),
-});
+}, { additionalProperties: false });
 
 export const conversationsRoutes = new Elysia()
 	.get(

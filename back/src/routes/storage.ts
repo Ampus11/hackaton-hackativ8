@@ -33,7 +33,7 @@ const presignBody = t.Object({
 	contentType: t.Optional(t.String({ minLength: 1, maxLength: 255 })),
 	sizeBytes: t.Optional(t.Integer({ minimum: 1 })),
 	description: t.Optional(t.Nullable(t.String({ maxLength: 2000 }))),
-});
+}, { additionalProperties: false });
 
 const requireFormString = (form: FormData, field: string) => {
 	const value = form.get(field);

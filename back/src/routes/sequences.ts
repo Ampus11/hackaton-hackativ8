@@ -14,7 +14,13 @@ const sequenceBody = t.Object({
 	format: t.String({ minLength: 1, maxLength: 32 }),
 	sequenceLength: t.Integer({ minimum: 1 }),
 	sequenceHash: t.String({ minLength: 1, maxLength: 128 }),
-});
+
+	// Server-controlled. Declared so a client that sends them is rejected with
+	// 422 instead of having the value silently stripped.
+	objectKey: t.Optional(t.Never()),
+	projectId: t.Optional(t.Never()),
+	userId: t.Optional(t.Never()),
+}, { additionalProperties: false });
 
 export const sequencesRoutes = new Elysia()
 	.post(

@@ -10,7 +10,7 @@ const projectParams = t.Object({ id: t.String({ format: "uuid" }) });
 
 const projectBody = t.Object({
 	name: t.String({ minLength: 1, maxLength: 120 }),
-});
+}, { additionalProperties: false });
 
 export const projectsRoutes = new Elysia()
 	.post(
