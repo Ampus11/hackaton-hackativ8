@@ -4,3 +4,4 @@ graphify-out
 #barangkali nanti ada kecolongan
 .env
 node_modules
+*.md
