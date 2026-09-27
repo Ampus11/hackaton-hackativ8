@@ -40,3 +40,7 @@ yarn-error.log*
 **/*.log
 package-lock.json
 **/*.bun
+.neon
+
+# wrangler local state
+.wrangler

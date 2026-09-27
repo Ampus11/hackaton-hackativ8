@@ -1,0 +1,179 @@
+import { eq } from "drizzle-orm";
+import { Elysia, t } from "elysia";
+
+import { getDb } from "../db/client";
+import { sequences } from "../db/schema";
+import { ApiError, errorBody } from "../lib/api-error";
+import { requireUserId } from "../lib/current-user";
+import {
+	assertProjectOwner,
+	findOwnedSequenceByObjectKey,
+} from "../lib/ownership";
+import {
+	MAX_BACKEND_UPLOAD_BYTES,
+	MAX_OBJECT_BYTES,
+	PRESIGN_TTL_SECONDS,
+	assertAllowedFilename,
+	assertBucketReachable,
+	assertDeclaredSize,
+	buildObjectKey,
+	deleteObject,
+	formatFromFilename,
+	presignGet,
+	presignPut,
+	putObject,
+	storageIdentity,
+} from "../lib/storage";
+
+const DEFAULT_CONTENT_TYPE = "application/octet-stream";
+
+const presignBody = t.Object({
+	projectId: t.String({ format: "uuid" }),
+	filename: t.String({ minLength: 1, maxLength: 255 }),
+	contentType: t.Optional(t.String({ minLength: 1, maxLength: 255 })),
+	sizeBytes: t.Optional(t.Integer({ minimum: 1 })),
+	description: t.Optional(t.Nullable(t.String({ maxLength: 2000 }))),
+}, { additionalProperties: false });
+
+const requireFormString = (form: FormData, field: string) => {
+	const value = form.get(field);
+	if (typeof value !== "string" || value.trim().length === 0) {
+		throw new ApiError(
+			422,
+			"VALIDATION_ERROR",
+			`Field "${field}" is required.`,
+		);
+	}
+	return value.trim();
+};
+
+export const storageRoutes = new Elysia()
+	.get("/storage/health", async ({ set }) => {
+		try {
+			await assertBucketReachable();
+			return { status: "ok", ...storageIdentity() };
+		} catch (error) {
+			if (error instanceof ApiError) {
+				set.status = error.statusCode;
+				return errorBody(error.code, error.message);
+			}
+
+			set.status = 503;
+			return errorBody("STORAGE_UNAVAILABLE", "Object storage is unreachable.");
+		}
+	})
+	.post(
+		"/storage/presign",
+		async ({ body, status }) => {
+			const userId = await requireUserId();
+			await assertProjectOwner(body.projectId, userId);
+			assertAllowedFilename(body.filename);
+
+			if (body.sizeBytes !== undefined) {
+				assertDeclaredSize(body.sizeBytes, MAX_OBJECT_BYTES);
+			}
+
+			const objectKey = buildObjectKey(body.projectId, body.filename);
+			const contentType = body.contentType ?? DEFAULT_CONTENT_TYPE;
+
+			const [sequence] = await getDb()
+				.insert(sequences)
+				.values({
+					projectId: body.projectId,
+					description: body.description ?? null,
+					format: formatFromFilename(body.filename),
+					objectKey,
+					originalFilename: body.filename,
+				})
+				.returning();
+
+			const uploadUrl = await presignPut(objectKey, contentType);
+
+			return status(201, {
+				data: {
+					sequenceId: sequence.id,
+					objectKey,
+					method: "PUT",
+					uploadUrl,
+					expiresIn: PRESIGN_TTL_SECONDS,
+				},
+			});
+		},
+		{ body: presignBody },
+	)
+	.post(
+		"/storage/upload",
+		async ({ request, status }) => {
+			const userId = await requireUserId();
+			const form = await request.formData();
+			const projectId = requireFormString(form, "projectId");
+			const filename = requireFormString(form, "filename");
+
+			await assertProjectOwner(projectId, userId);
+			assertAllowedFilename(filename);
+
+			const file = form.get("file");
+			if (!(file instanceof File)) {
+				throw new ApiError(422, "VALIDATION_ERROR", 'Field "file" is required.');
+			}
+
+			assertDeclaredSize(file.size, MAX_BACKEND_UPLOAD_BYTES);
+
+			const objectKey = buildObjectKey(projectId, filename);
+			const contentType = file.type || DEFAULT_CONTENT_TYPE;
+
+			await putObject(
+				objectKey,
+				contentType,
+				new Uint8Array(await file.arrayBuffer()),
+			);
+
+			const [sequence] = await getDb()
+				.insert(sequences)
+				.values({
+					projectId,
+					description: null,
+					format: formatFromFilename(filename),
+					objectKey,
+					originalFilename: filename,
+				})
+				.returning();
+
+			return status(201, {
+				data: {
+					sequenceId: sequence.id,
+					objectKey,
+					method: "PUT",
+					sizeBytes: file.size,
+				},
+			});
+		},
+	)
+	.get("/storage/*", async ({ params }) => {
+		const userId = await requireUserId();
+		const objectKey = params["*"];
+		const sequence = await findOwnedSequenceByObjectKey(objectKey, userId);
+		const downloadUrl = await presignGet(objectKey);
+
+		return {
+			data: {
+				objectKey,
+				downloadUrl,
+				expiresIn: PRESIGN_TTL_SECONDS,
+				sequence,
+			},
+		};
+	})
+	.delete("/storage/*", async ({ params }) => {
+		const userId = await requireUserId();
+		const objectKey = params["*"];
+		const sequence = await findOwnedSequenceByObjectKey(objectKey, userId);
+
+		await deleteObject(objectKey);
+		await getDb()
+			.update(sequences)
+			.set({ objectKey: null })
+			.where(eq(sequences.id, sequence.id));
+
+		return { data: { objectKey, deleted: true } };
+	});

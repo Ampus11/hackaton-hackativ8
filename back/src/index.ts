@@ -1,19 +1,12 @@
-import { Elysia } from "elysia";
+import { createApp } from "./app";
 
-// aot: false is required for Cloudflare Workers — the runtime forbids
-// code generation from strings (new Function / eval) which Elysia's
-// ahead-of-time compiler uses.
-const app = new Elysia({ aot: false }).get("/", () => "Hello Elysia");
+const app = createApp();
 
-// Local dev with Bun
+export { app };
+export default app;
+
 if (typeof Bun !== "undefined" && process.env.WORKER !== "1") {
-  app.listen(4000);
-  console.log(
-    `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`
-  );
+	const port = Number(process.env.PORT ?? 4000);
+	app.listen(port);
+	console.log(`back API listening on http://localhost:${port}`);
 }
-
-// Cloudflare Worker entry point
-export default {
-  fetch: app.fetch,
-};
