@@ -1,12 +1,7 @@
 import { Elysia, t } from "elysia";
 
-import { getDb, getSql } from "../db/client";
-import {
-	analyses,
-	conversations,
-	projects,
-	sequences,
-} from "../db/schema";
+import { getSql } from "../db/client";
+
 import { ApiError } from "../lib/api-error";
 import { requireUserId } from "../lib/current-user";
 
@@ -131,8 +126,10 @@ type GuestProject = {
 	createdAt?: string;
 };
 
-const asDate = (value: string | undefined) =>
-	value ? new Date(value) : new Date();
+// postgres.js serialises untyped parameters as text, so timestamps go over the
+// wire as ISO strings and are cast explicitly rather than passed as Date objects.
+const asTimestamp = (value: string | undefined) =>
+	value ? new Date(value).toISOString() : new Date().toISOString();
 
 /**
  * Guest analyses were already computed in the browser, so `completed` is the
@@ -160,103 +157,66 @@ const importProject = async (
 	userId: string,
 ): Promise<{ projectId: string; counts: ImportedCounts }> => {
 	const projectId = project.id ?? crypto.randomUUID();
-	const statements = [];
-
-	statements.push(
-		getDb()
-			.insert(projects)
-			.values({
-				id: projectId,
-				userId,
-				name: project.name.trim(),
-				createdAt: asDate(project.createdAt),
-			})
-			.onConflictDoNothing()
-			.toSQL(),
-	);
-
 	let analysisCount = 0;
 
-	for (const sequence of project.sequences ?? []) {
-		const sequenceId = sequence.id ?? crypto.randomUUID();
+	// One interactive transaction per project: either the whole tree lands or
+	// none of it does, so a failure can never leave a project half-imported.
+	await getSql().begin(async (tx) => {
+		await tx`
+			insert into projects (id, user_id, name, created_at)
+			values (${projectId}, ${userId}, ${project.name.trim()}, ${asTimestamp(project.createdAt)}::timestamptz)
+			on conflict do nothing
+		`;
 
-		statements.push(
-			getDb()
-				.insert(sequences)
-				.values({
-					id: sequenceId,
-					projectId,
-					recordId: sequence.recordId ?? null,
-					description: sequence.description ?? null,
-					format: sequence.format,
-					sequenceLength: sequence.sequenceLength ?? null,
-					sequenceHash: sequence.sequenceHash ?? null,
-					originalFilename: sequence.originalFilename ?? null,
-					createdAt: asDate(sequence.createdAt),
-				})
-				.onConflictDoNothing()
-				.toSQL(),
-		);
+		for (const sequence of project.sequences ?? []) {
+			const sequenceId = sequence.id ?? crypto.randomUUID();
 
-		for (const analysis of sequence.analyses ?? []) {
-			const resultJson = analysis.resultJson ?? null;
-			const serialized = resultJson ? JSON.stringify(resultJson) : "";
+			await tx`
+				insert into sequences (id, project_id, record_id, description, format, sequence_length, sequence_hash, original_filename, created_at)
+				values (${sequenceId}, ${projectId}, ${sequence.recordId ?? null}, ${sequence.description ?? null}, ${sequence.format}, ${sequence.sequenceLength ?? null}, ${sequence.sequenceHash ?? null}, ${sequence.originalFilename ?? null}, ${asTimestamp(sequence.createdAt)}::timestamptz)
+				on conflict do nothing
+			`;
 
-			if (serialized.length > MAX_RESULT_BYTES) {
-				throw new ApiError(
-					413,
-					"RESULT_TOO_LARGE",
-					`Analysis result exceeds ${MAX_RESULT_BYTES} bytes.`,
-					{ analysisId: analysis.id ?? null },
-				);
+			for (const analysis of sequence.analyses ?? []) {
+				const resultJson = analysis.resultJson ?? null;
+				const serialized = resultJson ? JSON.stringify(resultJson) : "";
+
+				if (serialized.length > MAX_RESULT_BYTES) {
+					throw new ApiError(
+						413,
+						"RESULT_TOO_LARGE",
+						`Analysis result exceeds ${MAX_RESULT_BYTES} bytes.`,
+						{ analysisId: analysis.id ?? null },
+					);
+				}
+
+				await tx`
+					insert into analyses (id, sequence_id, analysis_type, status, queue_job_id, result_json, error_message, created_at)
+					values (
+						${analysis.id ?? crypto.randomUUID()},
+						${analysis.sequenceId},
+						${analysis.analysisType},
+						${importedStatus(analysis, serialized.length > 0)},
+						null,
+						${serialized.length > 0 ? serialized : null}::jsonb,
+						${analysis.errorMessage ?? null},
+						${asTimestamp(analysis.createdAt)}::timestamptz
+					)
+					on conflict do nothing
+				`;
+
+				analysisCount += 1;
 			}
-
-			statements.push(
-				getDb()
-					.insert(analyses)
-					.values({
-						id: analysis.id ?? crypto.randomUUID(),
-						sequenceId: analysis.sequenceId,
-						analysisType: analysis.analysisType,
-						status: importedStatus(analysis, serialized.length > 0),
-						// Never trusted from the client: it would collide with the
-						// unique index and imply a server-side job that does not exist.
-						queueJobId: null,
-						resultJson: resultJson as Record<string, unknown> | null,
-						errorMessage: analysis.errorMessage ?? null,
-						createdAt: asDate(analysis.createdAt),
-					})
-					.onConflictDoNothing()
-					.toSQL(),
-			);
-
-			analysisCount += 1;
 		}
-	}
 
-	for (const conversation of project.conversations ?? []) {
-		statements.push(
-			getDb()
-				.insert(conversations)
-				.values({
-					id: conversation.id ?? crypto.randomUUID(),
-					projectId,
-					role: conversation.role,
-					content: conversation.content,
-					createdAt: asDate(conversation.createdAt),
-				})
-				.onConflictDoNothing()
-				.toSQL(),
-		);
-	}
-
-	// One implicit transaction per project: either the whole tree lands or none
-	// of it does, so a failure can never leave a project half-imported.
-	await getSql().transaction(
-		statements.map((statement) =>
-			getSql().query(statement.sql, statement.params as unknown[]),
-		),
-	);
+		for (const conversation of project.conversations ?? []) {
+			await tx`
+				insert into conversations (id, project_id, role, content, created_at)
+				values (${conversation.id ?? crypto.randomUUID()}, ${projectId}, ${conversation.role}, ${conversation.content}, ${asTimestamp(conversation.createdAt)}::timestamptz)
+				on conflict do nothing
+			`;
+		}
+	});
 
 	return {
 		projectId,

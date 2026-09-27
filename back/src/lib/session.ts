@@ -125,14 +125,31 @@ export const readCookie = (request: Request, name: string): string | undefined =
 	return undefined;
 };
 
-const cookieAttributes = (maxAgeSeconds: number) =>
-	[
+/**
+ * `Lax` is correct and the default, but it is only sent on a cross-origin request
+ * when the frontend and the API are on the *same site* — that means different
+ * subdomains of one registrable domain, such as `app.example.com` and
+ * `api.example.com`. Point the frontend at an unrelated site and the browser
+ * drops the cookie on every `fetch`, which looks exactly like a silent logout.
+ *
+ * For a genuinely cross-site API, set `COOKIE_SAME_SITE=none`. Browsers reject
+ * `SameSite=None` without `Secure`, so that combination is enforced here rather
+ * than left to fail invisibly in the browser.
+ */
+const sameSite = (): "Lax" | "None" =>
+	process.env.COOKIE_SAME_SITE === "none" ? "None" : "Lax";
+
+const cookieAttributes = (maxAgeSeconds: number) => {
+	const secure = useSecureCookies() || sameSite() === "None";
+
+	return [
 		"Path=/",
 		"HttpOnly",
-		"SameSite=Lax",
+		`SameSite=${sameSite()}`,
 		`Max-Age=${maxAgeSeconds}`,
-		...(useSecureCookies() ? ["Secure"] : []),
+		...(secure ? ["Secure"] : []),
 	].join("; ");
+};
 
 export const sessionCookie = (token: string) =>
 	`${SESSION_COOKIE}=${encodeURIComponent(token)}; ${cookieAttributes(ttlSeconds())}`;
