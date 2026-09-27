@@ -31,8 +31,8 @@ const failureMessage = (error: unknown) => {
 export const analysesRoutes = new Elysia()
 	.post(
 		"/analyses",
-		async ({ body, status }) => {
-			const userId = await requireUserId();
+		async ({ request, body, status }) => {
+			const userId = await requireUserId(request);
 			const sequence = await findOwnedSequence(body.sequenceId, userId);
 
 			assertQueueConfigured();
@@ -85,8 +85,8 @@ export const analysesRoutes = new Elysia()
 	)
 	.get(
 		"/analyses/:id",
-		async ({ params }) => {
-			const userId = await requireUserId();
+		async ({ request, params }) => {
+			const userId = await requireUserId(request);
 			const analysis = await findOwnedAnalysis(params.id, userId);
 			return { data: analysis };
 		},
@@ -94,8 +94,8 @@ export const analysesRoutes = new Elysia()
 	)
 	.get(
 		"/analyses/:id/status",
-		async ({ params }) => {
-			const userId = await requireUserId();
+		async ({ request, params }) => {
+			const userId = await requireUserId(request);
 			const analysis = await findOwnedAnalysis(params.id, userId);
 
 			return {

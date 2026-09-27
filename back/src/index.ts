@@ -5,8 +5,11 @@ const app = createApp();
 export { app };
 export default app;
 
-if (typeof Bun !== "undefined" && process.env.WORKER !== "1") {
-	const port = Number(process.env.PORT ?? 4000);
-	app.listen(port);
-	console.log(`back API listening on http://localhost:${port}`);
-}
+const port = Number(process.env.PORT ?? 4000);
+
+// Default to loopback: the API is published by cloudflared on this same host, so
+// binding to every interface would expose it directly and bypass the tunnel.
+const hostname = process.env.HOST ?? "127.0.0.1";
+
+app.listen({ port, hostname });
+console.log(`back API listening on http://${hostname}:${port}`);

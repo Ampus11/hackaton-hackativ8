@@ -25,8 +25,8 @@ const sequenceBody = t.Object({
 export const sequencesRoutes = new Elysia()
 	.post(
 		"/projects/:id/sequences",
-		async ({ params, body, status }) => {
-			const userId = await requireUserId();
+		async ({ request, params, body, status }) => {
+			const userId = await requireUserId(request);
 			await assertProjectOwner(params.id, userId);
 
 			const [sequence] = await getDb()
@@ -47,8 +47,8 @@ export const sequencesRoutes = new Elysia()
 	)
 	.get(
 		"/projects/:id/sequences",
-		async ({ params }) => {
-			const userId = await requireUserId();
+		async ({ request, params }) => {
+			const userId = await requireUserId(request);
 			await assertProjectOwner(params.id, userId);
 
 			const data = await getDb()

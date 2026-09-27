@@ -64,8 +64,8 @@ export const storageRoutes = new Elysia()
 	})
 	.post(
 		"/storage/presign",
-		async ({ body, status }) => {
-			const userId = await requireUserId();
+		async ({ request, body, status }) => {
+			const userId = await requireUserId(request);
 			await assertProjectOwner(body.projectId, userId);
 			assertAllowedFilename(body.filename);
 
@@ -104,7 +104,7 @@ export const storageRoutes = new Elysia()
 	.post(
 		"/storage/upload",
 		async ({ request, status }) => {
-			const userId = await requireUserId();
+			const userId = await requireUserId(request);
 			const form = await request.formData();
 			const projectId = requireFormString(form, "projectId");
 			const filename = requireFormString(form, "filename");
@@ -149,8 +149,8 @@ export const storageRoutes = new Elysia()
 			});
 		},
 	)
-	.get("/storage/*", async ({ params }) => {
-		const userId = await requireUserId();
+	.get("/storage/*", async ({ request, params }) => {
+		const userId = await requireUserId(request);
 		const objectKey = params["*"];
 		const sequence = await findOwnedSequenceByObjectKey(objectKey, userId);
 		const downloadUrl = await presignGet(objectKey);
@@ -164,8 +164,8 @@ export const storageRoutes = new Elysia()
 			},
 		};
 	})
-	.delete("/storage/*", async ({ params }) => {
-		const userId = await requireUserId();
+	.delete("/storage/*", async ({ request, params }) => {
+		const userId = await requireUserId(request);
 		const objectKey = params["*"];
 		const sequence = await findOwnedSequenceByObjectKey(objectKey, userId);
 

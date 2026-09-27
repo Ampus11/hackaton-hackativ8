@@ -15,8 +15,8 @@ const projectBody = t.Object({
 export const projectsRoutes = new Elysia()
 	.post(
 		"/projects",
-		async ({ body, status }) => {
-			const userId = await requireUserId();
+		async ({ request, body, status }) => {
+			const userId = await requireUserId(request);
 			const name = body.name.trim();
 
 			if (name.length === 0) {
@@ -36,8 +36,8 @@ export const projectsRoutes = new Elysia()
 		},
 		{ body: projectBody },
 	)
-	.get("/projects", async () => {
-		const userId = await requireUserId();
+	.get("/projects", async ({ request }) => {
+		const userId = await requireUserId(request);
 		const data = await getDb()
 			.select()
 			.from(projects)
@@ -48,8 +48,8 @@ export const projectsRoutes = new Elysia()
 	})
 	.get(
 		"/projects/:id",
-		async ({ params }) => {
-			const userId = await requireUserId();
+		async ({ request, params }) => {
+			const userId = await requireUserId(request);
 			const [project] = await getDb()
 				.select()
 				.from(projects)

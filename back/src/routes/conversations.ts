@@ -17,8 +17,8 @@ const conversationBody = t.Object({
 export const conversationsRoutes = new Elysia()
 	.get(
 		"/conversations/:projectId",
-		async ({ params }) => {
-			const userId = await requireUserId();
+		async ({ request, params }) => {
+			const userId = await requireUserId(request);
 			await assertProjectOwner(params.projectId, userId);
 
 			const data = await getDb()
@@ -33,8 +33,8 @@ export const conversationsRoutes = new Elysia()
 	)
 	.post(
 		"/conversations",
-		async ({ body, status }) => {
-			const userId = await requireUserId();
+		async ({ request, body, status }) => {
+			const userId = await requireUserId(request);
 			await assertProjectOwner(body.projectId, userId);
 
 			const [conversation] = await getDb()

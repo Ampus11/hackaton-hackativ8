@@ -1,9 +1,8 @@
 # Local development stack for Genomic Insight Agent.
 #
-# The backend currently points at hosted Neon (back/.env), so Postgres here is
-# for self-hosted parity and for running the whole stack offline. Redis backs
-# the BullMQ analysis queue, and MinIO is the S3-compatible object storage used
-# by /storage/presign.
+# Production runs the same three services on a single VPS, and the API and the
+# analysis worker run beside them. In development this file brings up just the
+# datastores so the API can be run from source with `bun run dev`.
 #
 #   docker compose up -d
 #   docker compose ps
@@ -22,14 +21,14 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-genomic_insight}
+      POSTGRES_DB: ${POSTGRES_DB:-gene_pilot}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
       test:
-        ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-genomic_insight}"]
+        ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-gene_pilot}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -90,7 +89,7 @@ services:
     environment:
       MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID:-minioadmin}
       MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY:-minioadmin}
-      S3_BUCKET: ${S3_BUCKET:-genomic-insight}
+      S3_BUCKET: ${S3_BUCKET:-genepilot}
     restart: "no"
 
 volumes:
