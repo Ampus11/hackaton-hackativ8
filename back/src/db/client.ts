@@ -13,6 +13,20 @@ const createDatabase = () => {
 };
 
 let database: ReturnType<typeof createDatabase> | undefined;
+let sql: ReturnType<typeof neon> | undefined;
+
+/**
+ * The raw Neon tagged template.
+ *
+ * `drizzle-orm/neon-http` has no interactive transactions, so multi-statement
+ * work that must be atomic (guest import) is built from Drizzle queries via
+ * `.toSQL()` and executed through Neon's batch `transaction()` instead, which
+ * runs every statement in a single implicit transaction.
+ */
+export const getSql = () => {
+  sql ??= neon(process.env.DATABASE_URL ?? "");
+  return sql;
+};
 
 export const getDb = () => {
   database ??= createDatabase();
@@ -20,3 +34,4 @@ export const getDb = () => {
 };
 
 export type Database = ReturnType<typeof createDatabase>;
+export type Sql = ReturnType<typeof neon>;

@@ -3,24 +3,20 @@ import { eq } from "drizzle-orm";
 import { getDb } from "../db/client";
 import { users } from "../db/schema";
 import { ApiError } from "./api-error";
+import { isDevIdentityAllowed } from "./runtime";
+import { readCookie, SESSION_COOKIE, verifySession } from "./session";
 
-const hostedRuntime = () =>
-	process.env.VERCEL === "1" ||
-	process.env.DEPLOY_RUNTIME === "cloudflare-worker" ||
-	process.env.NODE_ENV === "production";
+/**
+ * Resolves the caller from the session cookie alone.
+ *
+ * This deliberately does not touch the database. The token is HMAC-signed and
+ * short-lived, and every ownership check already re-reads the row, so an extra
+ * lookup per request would buy nothing.
+ */
+export const resolveUserId = async (request: Request): Promise<string | null> =>
+	verifySession(readCookie(request, SESSION_COOKIE));
 
-const devIdentityAllowed = () =>
-	!hostedRuntime() || process.env.ALLOW_DEV_AUTH === "true";
-
-export const requireUserId = async (): Promise<string> => {
-	if (!devIdentityAllowed()) {
-		throw new ApiError(
-			401,
-			"AUTH_NOT_IMPLEMENTED",
-			"Authentication is required for this environment.",
-		);
-	}
-
+const devUserId = async (): Promise<string> => {
 	const email = (process.env.DEV_USER_EMAIL ?? "developer@local.test")
 		.trim()
 		.toLowerCase();
@@ -39,4 +35,25 @@ export const requireUserId = async (): Promise<string> => {
 		.returning({ id: users.id });
 
 	return user.id;
+};
+
+/**
+ * The user id every route acts as, or 401.
+ *
+ * A real session always wins. The shared dev identity is a local convenience
+ * and is reachable only when `ALLOW_DEV_AUTH` is set outside development, so a
+ * hosted deployment without authentication fails closed instead of handing
+ * every visitor the same account.
+ */
+export const requireUserId = async (request: Request): Promise<string> => {
+	const sessionUserId = await resolveUserId(request);
+	if (sessionUserId) {
+		return sessionUserId;
+	}
+
+	if (!isDevIdentityAllowed()) {
+		throw new ApiError(401, "UNAUTHENTICATED", "Authentication required.");
+	}
+
+	return devUserId();
 };

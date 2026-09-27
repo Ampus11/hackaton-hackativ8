@@ -4,7 +4,9 @@ import { Elysia, type ElysiaAdapter } from "elysia";
 import { getDb } from "./db/client";
 import { ApiError, errorBody } from "./lib/api-error";
 import { analysesRoutes } from "./routes/analyses";
+import { authRoutes } from "./routes/auth";
 import { conversationsRoutes } from "./routes/conversations";
+import { guestRoutes } from "./routes/guest";
 import { projectsRoutes } from "./routes/projects";
 import { sequencesRoutes } from "./routes/sequences";
 import { storageRoutes } from "./routes/storage";
@@ -48,6 +50,8 @@ export const createApp = (options: { adapter?: ElysiaAdapter } = {}) =>
 				return { status: "degraded", database: "unavailable" };
 			}
 		})
+		.use(authRoutes)
+		.use(guestRoutes)
 		.use(projectsRoutes)
 		.use(sequencesRoutes)
 		.use(analysesRoutes)

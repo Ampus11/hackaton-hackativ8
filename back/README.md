@@ -87,25 +87,83 @@ docker compose down -v        # stop and delete data
 | `WORKER_CONCURRENCY`   | no       | Concurrent analysis jobs. Defaults to `2`.                        |
 | `ENQUEUE_PORT`         | no       | Serve `POST /enqueue` from the analysis worker when set.         |
 | `BIO_SERVICE_URL`      | no       | Base URL of the Bio service. Analysis fails without it.          |
-| `ALLOW_DEV_AUTH`       | no       | Required to use the API on Vercel/Workers before auth is built.  |
+| `ALLOW_DEV_AUTH`       | no       | Enables the shared local identity outside development. |
 | `DEV_USER_EMAIL`       | no       | Email of the local development identity. Default `developer@local.test`. |
+| `AUTH_SECRET`          | hosted   | HMAC key for session cookies. Min 32 chars, required on Vercel/Workers. |
+| `SESSION_TTL_SECONDS`  | no       | Session lifetime in seconds. Defaults to 7 days.    |
+| `PBKDF2_ITERATIONS`    | no       | Password hashing cost, 1000–2000000. Defaults to `210000`. |
 
-Storage and queue credentials belong in `.env` locally and in `wrangler secret put` / Vercel environment variables. `QUEUE_SECRET` is mandatory whenever `ENQUEUE_PORT` or `QUEUE_ENQUEUE_URL` is set; the service refuses to start without it.
+Storage, queue, and `AUTH_SECRET` belong in `.env` locally and in `wrangler secret put` / Vercel environment variables. `QUEUE_SECRET` is mandatory whenever `ENQUEUE_PORT` or `QUEUE_ENQUEUE_URL` is set; the service refuses to start without it.
 
-## Authentication status
+On Cloudflare, `AUTH_SECRET` is a secret rather than a var, so set it once per environment:
 
-Authentication is not implemented yet (see `PLAN.md`).
+```bash
+wrangler secret put AUTH_SECRET               # production
+wrangler secret put AUTH_SECRET --env preview # preview
+```
 
-- Local Bun: a single development identity is resolved server-side and upserted on first use.
-- Vercel / Workers: every data route returns `401 AUTH_NOT_IMPLEMENTED` unless `ALLOW_DEV_AUTH=true` is set. This is intentional — the endpoints fail closed rather than serving unscoped data.
+A Vercel or Workers deployment without `AUTH_SECRET` is not "insecurely open" — it fails closed with `401 UNAUTHENTICATED` on every data route.
 
-Ownership is always resolved from a server-side record. The API never accepts a user id, email, or role from the client, and `object_key` can only be set by the storage endpoints — a client-supplied `objectKey` is rejected with `422`.
+## Authentication
+
+Register, log in, and the session cookie are implemented. See `PLAN.md` §7 for the full rationale.
+
+- `POST /auth/register` and `POST /auth/login` set a `gia_session` cookie: `HttpOnly`, `SameSite=Lax`, and `Secure` on hosted runtimes. The token is `v1.<payload>.<HMAC-SHA-256>` and is verified statelessly, so no session lookup is needed per request.
+- Passwords are hashed with PBKDF2-HMAC-SHA-512 (210k iterations by default) through Web Crypto, so there is no native binding to compile on any of the three runtimes.
+- `POST /auth/logout` expires the cookie. `GET /auth/me` reports the current account.
+- Login answers `Invalid email or password.` for both an unknown email and a wrong password, and spends the same PBKDF2 work either way, so neither the message nor the timing reveals whether an account exists.
+- **Local Bun:** with `ALLOW_DEV_AUTH=true` (or `bun run dev`), a session is used when present, otherwise the shared `DEV_USER_EMAIL` identity is upserted. That keeps curl and the frontend usable without logging in.
+- **Vercel / Workers:** the shared identity is only reachable when `ALLOW_DEV_AUTH` is explicitly enabled. Otherwise every data route returns `401 UNAUTHENTICATED`.
+
+Sessions are stateless, so a successful signature check returns the user id without confirming the account still exists. Every route then re-reads the owned row, so access stays scoped; deleting an account should also rotate `AUTH_SECRET` to cut off outstanding cookies.
+
+Ownership is always resolved from a server-side record. The API never accepts a user id, email, or role from the client, `object_key` can only be set by the storage endpoints, and `queue_job_id` / analysis `status` are worker-owned. Supplying any of them is rejected with `422`.
+
+## Importing guest history
+
+`POST /guest/import` moves a guest's IndexedDB history into their new account, so registering does not throw away prior work.
+
+- Requires a session: the payload is only accepted for the authenticated account.
+- Send the UUIDs the browser already assigned. Re-running the import is safe: every insert is `on conflict do nothing`, so a retry after a partial failure converges instead of duplicating.
+- Nest the payload as projects → sequences → analyses, with conversations alongside sequences:
+
+  ```json
+  {
+    "projects": [
+      {
+        "id": "uuid",
+        "name": "Mito study",
+        "sequences": [
+          {
+            "id": "uuid",
+            "format": "fasta",
+            "recordId": "NC_000001",
+            "sequenceLength": 16641,
+            "analyses": [
+              { "id": "uuid", "sequenceId": "uuid", "analysisType": "gc_content", "resultJson": { "gc": 42.5 } }
+            ]
+          }
+        ],
+        "conversations": [{ "id": "uuid", "role": "user", "content": "what is the GC content?" }]
+      }
+    ]
+  }
+  ```
+
+- Each project commits in its own transaction, so one bad record cannot leave a half-imported project. Earlier projects stay committed and the error names the failing index, which is what makes a targeted retry safe.
+- `userId`, `objectKey`, and `queueJobId` are rejected with `422`. A guest has no bucket and no queue, so an imported analysis can only be `completed` or `failed`; anything else lands as `failed` rather than implying a job that does not exist.
+- Bounded at 50 projects, 200 sequences per project, 100 analyses per sequence, 500 conversations per project, 64 KB per analysis result.
 
 ## Endpoints
 
 | Method | Path                             | Description                                        |
 | ------ | -------------------------------- | -------------------------------------------------- |
 | GET    | `/health`                        | Liveness plus a database connectivity probe.       |
+| POST   | `/auth/register`                 | Create an account and set the session cookie.      |
+| POST   | `/auth/login`                    | Set the session cookie.                            |
+| POST   | `/auth/logout`                   | Expire the session cookie.                         |
+| GET    | `/auth/me`                       | Current account, or `401`.                         |
+| POST   | `/guest/import`                  | Import guest IndexedDB history (session required). |
 | POST   | `/projects`                      | Create a project.                                   |
 | GET    | `/projects`                      | List owned projects.                                |
 | GET    | `/projects/:id`                  | Fetch one owned project.                            |
