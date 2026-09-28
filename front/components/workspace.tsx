@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { describeError, isApiConfigured, isUnauthorized } from "../lib/api";
@@ -314,7 +315,12 @@ function Dashboard({ user, onSignOut }: { user: User; onSignOut: () => void }) {
 		<div className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 py-8">
 			<header className="flex flex-wrap items-center justify-between gap-3">
 				<div>
-					<h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Genomic Insight</h1>
+					<Link
+						href="/"
+						className="text-lg font-semibold text-zinc-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 dark:text-zinc-50 dark:focus-visible:outline-zinc-100"
+					>
+						Genomic Insight
+					</Link>
 					<p className="text-xs text-zinc-500">Signed in as {user.name || user.email}</p>
 				</div>
 				<Button onClick={signOut}>Sign out</Button>
