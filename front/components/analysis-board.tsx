@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { describeError } from "../lib/api";
 import { getAnalysis, type Analysis } from "../lib/genomics";
+import { AnalysisResultView } from "./analysis-result";
 import { Button, Empty, Notice, Panel, StatusBadge, formatDate } from "./primitives";
 
 /**
@@ -103,9 +104,11 @@ function AnalysisRow({
 			) : null}
 
 			{analysis.resultJson ? (
-				<pre className="mt-2 max-h-64 overflow-auto rounded-lg bg-zinc-50 p-3 text-[11px] leading-relaxed text-zinc-800 dark:bg-zinc-950 dark:text-zinc-200">
-					{JSON.stringify(analysis.resultJson, null, 2)}
-				</pre>
+				<AnalysisResultView
+					resultJson={analysis.resultJson}
+					analysisType={analysis.analysisType}
+					createdAt={analysis.createdAt}
+				/>
 			) : null}
 
 			{error ? (
