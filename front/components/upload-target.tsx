@@ -2,7 +2,7 @@
 
 import { useRef, useState, type DragEvent } from "react";
 
-import { OpenBoxIcon } from "./brand";
+import { BoxIcon } from "./brand";
 import { cx } from "./primitives";
 
 /*
@@ -13,14 +13,19 @@ import { cx } from "./primitives";
  * stays outside. That also means it works unchanged whether the next step is a
  * presigned PUT, a proxied upload, or nothing wired up yet.
  *
- * The border is a 1.5px dotted `--color-brown`, which is the brief's `#6D2700`.
- * It measures 9.28:1 on the cream surface, well clear of the 3:1 a hairline
- * needs, so nothing had to be corrected here. The box is transparent rather than
- * a shade lighter than the cream: the brief allows either, and transparency is
- * the one that leaves the surface reading as one plane.
+ * The border is 2px dashed `--color-maroon`, the brief's `#601700`. It measures
+ * 11.11:1 on cream, so nothing had to be corrected here.
  *
- * Sizes are the caller's. The home screen passes the brief's 280x135 and 85% on
- * a phone; nothing here assumes either.
+ * The box is a fixed 500x238 rather than growing with its contents. That is
+ * deliberate at a size this large: the caption inside wraps to two lines at
+ * `max-w-[260px]`, and a box that resized with its text would change height the
+ * moment one word of the label was edited.
+ *
+ * `overflow-hidden` is on the box so the dashed rule is clipped to the 14px
+ * radius. Without it the dash corners render square against the curve and the
+ * whole element reads as a rectangle with a rounded background.
+ *
+ * Sizes are the caller's. Nothing here assumes the home screen's numbers.
  */
 
 type UploadTargetProps = {
@@ -61,29 +66,34 @@ export function UploadTarget({
 			onDragLeave={() => setOver(false)}
 			onDrop={onDrop}
 			className={cx(
-				"flex flex-col items-center justify-center rounded-[10px] border-[1.5px] border-dotted px-5 text-center transition-colors",
+				/*
+				 * `flex-col` + `justify-center` puts the icon above the caption in
+				 * normal flow -- the caption is a sibling of the icon, not something
+				 * positioned underneath it, which is what previously let it escape
+				 * the box. `gap-[18px]` is the brief's number; Tailwind has no gap
+				 * step at 18, hence the arbitrary value.
+				 */
+				"flex flex-col items-center justify-center gap-[18px] overflow-hidden rounded-[14px] border-2 border-dashed px-6 text-center",
 				/*
 				 * Drag-over swaps to the ink teal. It is the only signal that the
-				 * target is live, and brown-on-brown would be invisible.
+				 * target is live, and maroon-on-maroon would be invisible.
 				 */
-				over ? "border-teal-ink bg-teal-ink/5" : "border-brown",
+				over ? "border-teal-ink bg-teal-ink/5" : "border-maroon",
 				disabled && "pointer-events-none opacity-60",
 				className,
 			)}
 		>
-			<OpenBoxIcon
-				className={cx(
-					"shrink-0 transition-colors",
-					over ? "text-teal-ink" : "text-brown",
-				)}
+			<BoxIcon
+				size={76}
+				className={over ? "text-teal-ink" : "text-maroon"}
 			/>
 
-			<p className="mt-2.5 max-w-[26ch] text-[11px] font-medium leading-snug text-forest dark:text-night-text">
+			<p className="max-w-[260px] text-[12px] font-semibold leading-snug text-maroon">
 				{label}
 			</p>
 
 			{hint ? (
-				<p className="mx-auto mt-1.5 max-w-sm text-[11px] leading-relaxed text-muted dark:text-night-muted">
+				<p className="max-w-[300px] text-[12px] leading-relaxed text-muted">
 					{hint}
 				</p>
 			) : null}

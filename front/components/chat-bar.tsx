@@ -2,7 +2,7 @@
 
 import type { FormEvent } from "react";
 
-import { ArrowUpIcon, PaperclipIcon } from "./brand";
+import { ArrowUpRightIcon, PaperclipIcon } from "./brand";
 import { cx } from "./primitives";
 
 /*
@@ -13,20 +13,25 @@ import { cx } from "./primitives";
  * been typed. `onSubmit` is optional -- without it the form will not submit,
  * which is the safe default for a component that has nothing to do with a reply.
  *
- * The `filled` variant is the hero bar at the foot of the home column: the
- * brief's `#6D2700` bar, fully rounded, with a teal circle on the right. Three
- * colours are load-bearing in it and all three were measured against each other
- * rather than picked:
+ * The `filled` variant is the hero bar at the foot of the home column: a 46px
+ * pill in the brief's `#601700`, with the paperclip on the left, the input in the
+ * middle and a teal circle on the right. Every colour in it was measured against
+ * what it actually sits on rather than against cream, because three of the four
+ * are on a dark fill:
  *
- *   cream placeholder on brown   9.28:1
- *   teal button on the brown bar 3.32:1   (the edge, needs 3:1)
- *   white arrow on the teal      3.26:1   (an icon, needs 3:1)
+ *   cream placeholder on maroon   11.11:1
+ *   teal button on the maroon bar  3.97:1   (the edge, needs 3:1)
  *
- * Both of the tight ones pass on the *non-text* floor rather than the 4.5:1 one,
- * which is the right floor for a button edge and an arrow. The white arrow is
- * worth a note because cream on the same teal is 2.80:1 -- it would have been a
- * shape rather than a symbol. The bar uses cream; the arrow inside the button
- * uses white. Different jobs, different floor, different colour.
+ * The arrow is **white**, not cream, and that is the one place this file departs
+ * from the brief. Cream on `#21A179` measures 2.80:1, under the 3:1 that a 18px
+ * icon owes; white on the same teal is 3.26:1 and passes. The alternative was
+ * teal-ink on teal at 1.53:1, which is worse than nothing. Cream on the bar stays
+ * cream -- there it has 11.11:1 -- so the two creams in this bar are different
+ * colours on purpose.
+ *
+ * `h-[46px]` is a fixed height, so the three children are laid out with
+ * `items-center` and the input is `h-full` rather than padding itself to 46px.
+ * Padding plus a line-height is how a bar ends up 49px tall.
  */
 
 type ChatBarProps = {
@@ -61,18 +66,44 @@ export function ChatBar({
 		<form
 			onSubmit={submit}
 			className={cx(
-				"flex items-center gap-1.5 p-1 transition-colors",
+				"flex items-center gap-2.5 transition-colors",
 				filled
-					? "rounded-full bg-brown text-cream focus-within:ring-2 focus-within:ring-teal focus-within:ring-offset-2 focus-within:ring-offset-cream dark:focus-within:ring-offset-night"
-					: "rounded-xl border border-line-strong bg-paper text-forest focus-within:border-teal-ink dark:border-night-line dark:bg-night-raised dark:text-night-text dark:focus-within:border-teal",
+					? "h-[46px] rounded-full bg-maroon pl-4 pr-1.5 focus-within:ring-2 focus-within:ring-teal-ink focus-within:ring-offset-2 focus-within:ring-offset-cream"
+					: "rounded-xl border border-line-strong bg-paper p-1.5 text-forest focus-within:border-teal-ink",
 				disabled && "opacity-60",
 				className,
 			)}
 		>
+			{/*
+			 * Left, not right. The brief puts the paperclip first and the send
+			 * circle last, and that order is not cosmetic: attach is the thing
+			 * you reach for before you have anything to send, so it reads left
+			 * to right as "add input, then submit".
+			 */}
+			<button
+				type="button"
+				disabled={disabled}
+				aria-label="Attach a FASTA file"
+				className={cx(
+					"shrink-0 rounded-full transition-colors",
+					filled
+						? "text-cream hover:text-white"
+						: "p-2 text-muted hover:bg-shell hover:text-forest",
+				)}
+			>
+				<PaperclipIcon size={20} />
+			</button>
+
 			<label className="sr-only" htmlFor={`chat-${variant}`}>
 				{label}
 			</label>
 
+			{/*
+			 * `min-w-0` is load-bearing. A flex item defaults to `min-width: auto`,
+			 * which refuses to shrink below its content, so a long placeholder
+			 * would widen the bar past 558px and push the send circle out of the
+			 * pill. This one class is what keeps the input inside its track.
+			 */}
 			<input
 				id={`chat-${variant}`}
 				type="text"
@@ -84,46 +115,23 @@ export function ChatBar({
 				className={cx(
 					"min-w-0 flex-1 bg-transparent outline-none",
 					filled
-						? "px-3.5 text-[11px] text-cream placeholder:text-cream"
-						: "px-3 py-2 text-sm text-forest placeholder:text-muted dark:text-night-text dark:placeholder:text-night-muted",
+						? "h-full text-[13px] font-semibold text-cream placeholder:text-cream/90"
+						: "px-1 py-1.5 text-sm text-forest placeholder:text-muted",
 				)}
 			/>
 
-			{/*
-			 * The paperclip is only on the plain variant. The filled bar sits
-			 * directly under a drop zone, so a second way to attach a file on the
-			 * same screen is redundancy rather than a shortcut -- and the brief
-			 * shows the hero bar carrying the send button alone.
-			 */}
-			{filled ? null : (
-				<button
-					type="button"
-					disabled={disabled}
-					aria-label="Attach a FASTA file"
-					className="shrink-0 rounded-full p-2 text-muted transition-colors hover:bg-shell hover:text-forest dark:text-night-muted dark:hover:bg-cream/10 dark:hover:text-night-text"
-				>
-					<PaperclipIcon className="size-4" />
-				</button>
-			)}
-
-			{/*
-			 * 24px rather than the brief's 20px. The circle is decorative at that
-			 * size but it is also the only submit control on the screen, and 20px
-			 * is a small target for a thumb. The bar grew to absorb the difference
-			 * rather than the arrow shrinking.
-			 */}
 			<button
 				type="submit"
 				disabled={disabled || value.trim().length === 0}
 				aria-label="Send"
 				className={cx(
-					"grid size-6 shrink-0 place-items-center rounded-full transition-opacity disabled:cursor-not-allowed",
+					"grid shrink-0 place-items-center rounded-full transition-opacity disabled:cursor-not-allowed",
 					filled
-						? "bg-teal text-white hover:opacity-90 disabled:bg-cream/25 disabled:text-cream/60"
-						: "bg-forest text-cream hover:bg-forest/90 disabled:bg-shell disabled:text-muted dark:bg-cream dark:text-forest dark:disabled:bg-night dark:disabled:text-night-muted",
+						? "size-[34px] bg-teal text-white hover:opacity-90 disabled:bg-cream/25"
+						: "size-8 bg-forest text-cream hover:bg-forest/90 disabled:bg-shell disabled:text-muted",
 				)}
 			>
-				<ArrowUpIcon className="size-3" />
+				<ArrowUpRightIcon size={18} />
 			</button>
 		</form>
 	);

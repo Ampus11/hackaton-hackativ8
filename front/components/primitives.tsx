@@ -14,14 +14,16 @@ export const cx = (...values: Array<string | false | null | undefined>) =>
  * against `--color-paper` `#FFFCF7` or `--color-cream` `#FFEBCB`:
  *
  *   cream on forest   11.63:1   primary button
- *   cream on brown     9.28:1   accent button
+ *   cream on maroon   11.11:1   accent button
  *   teal-ink           4.87:1   focus ring, active stroke, dashed rules
  *   teal               2.80:1   below the 3:1 floor, so never one of those
  *
  * That last number is why there is no `variant="teal"` on Button: a filled teal
- * button lands at 3.7:1 with cream text, which fails the 4.5:1 floor for body
- * copy. Teal stays a mark colour -- the helix, the composer submit button -- and
- * never becomes a surface or an edge.
+ * button lands at 2.8:1 with cream text, which fails the 3:1 floor an icon owes
+ * and a long way short of the 4.5:1 one for body copy. Teal stays a mark colour
+ * -- the helix, the composer submit button -- and never becomes a surface or an
+ * edge. The one place it is filled, the icon inside it is white rather than
+ * cream, because white on teal is 3.26:1 and cream is 2.80:1; see chat-bar.tsx.
  *
  * `--color-dust` at 4.35:1 is the one secondary that is allowed to draw a line.
  * `--color-line-strong` is not, at 1.64:1: it is a divider between two panels of
@@ -145,7 +147,7 @@ export const Button = ({
 	const variants = {
 		primary:
 			"bg-forest text-cream hover:bg-forest/90 dark:bg-cream dark:text-forest dark:hover:bg-white",
-		accent: "bg-brown text-cream hover:bg-brown/90",
+		accent: "bg-maroon text-cream hover:bg-maroon/90",
 		ghost:
 			"border border-line-strong bg-paper text-forest hover:bg-shell dark:border-night-line dark:bg-night dark:text-night-text dark:hover:bg-night-raised",
 	} as const;
@@ -214,7 +216,7 @@ export const TextArea = ({
  * Status colours come from the semantics, not the palette: queued is neutral,
  * processing is amber because that is what amber has always meant, completed is
  * brand teal because "done" and "the brand" agree, and failed is red because
- * nothing else would survive a colour-blind reader. Brown is deliberately absent
+ * nothing else would survive a colour-blind reader. Maroon is deliberately absent
  * -- it is the accent button, and reusing it here would make a destructive
  * action and a fatal error the same colour.
  */

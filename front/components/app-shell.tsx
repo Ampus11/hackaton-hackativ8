@@ -9,22 +9,31 @@ import { cx } from "./primitives";
 /*
  * The application shell.
  *
- * The brief describes a framed app rather than a full-bleed page: a charcoal
- * `#1E1E1E` outer screen with a 1360x760 cream container centred in it, rounded
- * at 15px, split into a 150px sidebar and a main area by a single hairline. The
- * frame lives here rather than in the layout because it is a property of *the
- * app*, and both routes share it.
+ * A 274px sidebar down the left and a main area beside it, both on cream. There
+ * is no frame around them and no second surface: the brief's page background is
+ * `#FFEBCB`, so the whole app is one plane and the sidebar is separated from the
+ * main area by a single hairline rather than by a change of colour.
  *
- * Two layouts from one component, because the design system specifies both and
- * the difference is structural rather than cosmetic:
+ * Three layout facts that are load-bearing and easy to break:
  *
- *   md and up   the framed container: persistent sidebar on the left, main area
- *               scrolling inside the frame. The frame has a fixed height, which
- *               is why the main area scrolls and the page does not -- otherwise
- *               the container would grow past its own frame.
- *   below md    the same container, full-bleed and edge to edge, with a compact
- *               top bar in place of the sidebar. No charcoal margin: on a phone
- *               a decorative frame costs a whole row of the screen.
+ *   1. `md:h-screen` + `md:overflow-hidden` on the row, and `overflow-y-auto` on
+ *      <main>. The sidebar is pinned to the viewport at `h-screen` and the main
+ *      area scrolls inside it. Neither of those is decoration: if <main> scrolls
+ *      the page instead, a long analysis list scrolls the sidebar's Settings row
+ *      off the bottom of the screen, which is the one thing a sidebar must not do.
+ *   2. `overflow-hidden` on the sidebar. Its own `Recent` block scrolls, so
+ *      nothing should ever reach the sidebar's edge -- this is the backstop that
+ *      turns "it overflowed" into "it is clipped" rather than into a horizontal
+ *      scrollbar across the whole app.
+ *   3. `min-w-0` on every flex child. A flex item defaults to `min-width: auto`
+ *      and refuses to shrink below its content, so one long unbroken string in
+ *      the main area would push the sidebar off the left edge instead of
+ *      wrapping. This is the class that makes requirement "no horizontal
+ *      overflow" true rather than nearly true.
+ *
+ * The dividers are direct children of the <aside> with no padding, while the
+ * content they separate sits in its own padded block. That is what makes a rule
+ * span the full 274px instead of stopping at the text column.
  *
  * The sidebar does not collapse into a disclosure on mobile. A phone already
  * spends its width on the content, and a menu that has to be opened before
@@ -91,135 +100,133 @@ export function AppShell({
 	account,
 }: AppShellProps) {
 	return (
-		/*
-		 * The outer screen. `p-0 md:p-8` means the charcoal is only ever visible
-		 * once there is room for a margin to mean something; below `md` the
-		 * container runs edge to edge.
-		 */
-		<div className="flex min-h-full flex-1 items-center justify-center md:p-8">
+		<div className="flex min-h-full min-w-0 flex-1 flex-col md:h-screen md:flex-row md:overflow-hidden">
+			{/* ----------------------------------------------------- sidebar -- */}
 			{/*
-			 * `md:h-[760px]` is the brief's number. The `max-h` clamp is not: on a
-			 * short window an unclamped frame would push its own top edge off the
-			 * screen and take the sidebar's first item with it. 4rem is exactly
-			 * the `md:p-8` above, so the frame never touches the edge.
+			 * `hidden md:flex` rather than a toggleable drawer. On desktop this is
+			 * always the navigation, and a sidebar that can be collapsed is one more
+			 * piece of state to get wrong for no benefit.
 			 */}
-			<div className="flex min-h-full w-full max-w-[1360px] flex-col overflow-hidden bg-cream md:h-[760px] md:max-h-[calc(100dvh-4rem)] md:min-h-0 md:flex-row md:rounded-[15px] dark:bg-night">
-				{/* ----------------------------------------------------- sidebar -- */}
+			<aside className="hidden h-screen w-[274px] min-w-0 shrink-0 flex-col overflow-hidden border-r border-rule md:flex">
 				{/*
-				 * `hidden md:flex` rather than a toggleable drawer. On desktop this
-				 * is always the navigation, and a sidebar that can be collapsed is
-				 * one more piece of state to get wrong for no benefit.
-				 *
-				 * 150px is the brief's width and it is narrow: 12px of padding each
-				 * side leaves 126px, which is why the labels below sit at 11px and
-				 * not at the 14px the rest of the app uses.
+				 * 190px, as the brief specifies. It is a tall block for three small
+				 * things, and that is the point: it is the one place the app gets to
+				 * look like itself rather than like a list.
 				 */}
-				<aside className="hidden w-[150px] shrink-0 flex-col border-r border-line px-3 py-4 md:flex dark:border-night-line">
-					{/*
-					 * Centred because the brief centres it, and because in a 150px
-					 * column a left-aligned logo with a right-aligned category line
-					 * reads as two unrelated words rather than one mark.
-					 */}
-					<Link href="/" className="block px-1 py-2">
-						<Wordmark />
+				<Link
+					href="/"
+					className="flex h-[190px] min-w-0 shrink-0 items-center justify-center px-6"
+				>
+					<Wordmark />
+				</Link>
+
+				{/* Full-bleed rule: no padding, so it spans all 274px. */}
+				<div className="h-px w-full shrink-0 bg-line" />
+
+				{action ? (
+					<div className="min-w-0 shrink-0 px-6 py-5">
+						<ShellAction action={action} />
+					</div>
+				) : null}
+
+				<div className="h-px w-full shrink-0 bg-line" />
+
+				{nav.length > 0 ? (
+					<nav className="flex min-w-0 shrink-0 flex-col gap-1 px-6 py-5">
+						{nav.map((item) => (
+							<Link
+								key={item.href}
+								href={item.href}
+								aria-current={item.active ? "page" : undefined}
+								className={cx(
+									"flex min-w-0 items-center gap-2.5 rounded-lg px-2 py-1.5 text-[13px] transition-colors",
+									item.active
+										? "bg-forest/10 font-semibold text-forest"
+										: "text-muted hover:bg-forest/5 hover:text-forest",
+								)}
+							>
+								{item.icon}
+								<span className="min-w-0 truncate">{item.label}</span>
+							</Link>
+						))}
+					</nav>
+				) : null}
+
+				{/*
+				 * Grows to fill, so the Settings row below is pushed to the bottom of
+				 * the 100vh column. `min-w-0` is what keeps a long Recent label from
+				 * widening the sidebar; `overflow-y-auto` keeps a long list inside it.
+				 */}
+				<div className="min-w-0 flex-1 overflow-y-auto px-6 py-5 scrollbar-slim">
+					{recent}
+				</div>
+
+				<div className="min-w-0 shrink-0 px-6 pb-6 pt-3">
+					{settings ? <ShellRow action={settings} /> : null}
+
+					{account ? (
+						<div className={settings ? "mt-4" : undefined}>
+							<Footer account={account} login={login} />
+						</div>
+					) : login ? (
+						<div className={settings ? "mt-4" : undefined}>
+							<Footer login={login} />
+						</div>
+					) : null}
+				</div>
+			</aside>
+
+			{/* ------------------------------------------------------- main -- */}
+			{/*
+			 * `min-w-0` here rather than on <main>: this is the flex item whose
+			 * intrinsic width comes from the page's widest table, and it is the one
+			 * that has to be allowed to shrink.
+			 */}
+			<div className="flex min-h-0 min-w-0 flex-1 flex-col">
+				<header className="flex shrink-0 items-center justify-between gap-3 border-b border-line px-5 py-4 md:hidden">
+					<Link href="/" className="min-w-0">
+						<Wordmark compact />
 					</Link>
 
-					<div className="mt-2 border-t border-line dark:border-night-line" />
-
-					{action ? <ShellAction action={action} className="mt-3" /> : null}
-
-					<div className="mt-3 border-t border-line dark:border-night-line" />
-
-					{nav.length > 0 ? (
-						<nav className="mt-3 flex flex-col gap-0.5">
-							{nav.map((item) => (
-								<Link
-									key={item.href}
-									href={item.href}
-									aria-current={item.active ? "page" : undefined}
-									className={cx(
-										"flex items-center gap-2 rounded-lg px-2 py-1.5 text-[11px] transition-colors",
-										item.active
-											? "bg-forest/10 font-medium text-forest dark:bg-cream/10 dark:text-night-text"
-											: "text-muted hover:bg-forest/5 hover:text-forest dark:text-night-muted dark:hover:bg-cream/5 dark:hover:text-night-text",
-									)}
-								>
-									{item.icon}
-									{item.label}
-								</Link>
-							))}
-						</nav>
+					{action ? (
+						<ShellAction action={action} size="sm" />
+					) : login ? (
+						<LoginLink login={login} size="sm" />
 					) : null}
+				</header>
 
-					{/* Middle: grows to fill, so the bottom row stays pinned down. */}
-					<div className="mt-5 min-h-0 grow overflow-y-auto scrollbar-slim">{recent}</div>
-
-					<div className="mt-auto pt-4">
-						{settings ? <ShellRow action={settings} muted /> : null}
-						{/* Only add the gap when there is something above it. */}
+				{/*
+				 * The sidebar footer again, on mobile. The sidebar above is `hidden`
+				 * below `md`, so without this there would be no Settings and no
+				 * sign-out on a phone -- every action has to exist on each layout that
+				 * renders one.
+				 */}
+				{settings || account || login ? (
+					<div className="shrink-0 border-b border-line px-5 py-4 md:hidden">
+						{settings ? <ShellRow action={settings} /> : null}
 						{account ? (
-							<div className={settings ? "mt-3" : undefined}>
+							<div className={settings ? "mt-4" : undefined}>
 								<Footer account={account} login={login} />
 							</div>
 						) : login ? (
-							<div className={settings ? "mt-3" : undefined}>
+							<div className={settings ? "mt-4" : undefined}>
 								<Footer login={login} />
 							</div>
 						) : null}
 					</div>
-				</aside>
+				) : null}
 
-				{/* ------------------------------------------------------- main -- */}
-				<div className="flex min-h-0 min-w-0 flex-1 flex-col">
-					<header className="flex shrink-0 items-center justify-between gap-3 border-b border-line px-4 py-3 md:hidden dark:border-night-line">
-						<Link href="/" className="min-w-0">
-							<Wordmark compact />
-						</Link>
-
-						{action ? (
-							<ShellAction action={action} size="sm" />
-						) : login ? (
-							<LoginLink login={login} size="sm" />
-						) : null}
-					</header>
-
-					{/*
-					 * The sidebar footer again, on mobile. The sidebar above is
-					 * `hidden` below `md`, so without this there would be no Settings
-					 * and no sign-out on a phone -- every action has to exist on each
-					 * layout that renders one.
-					 */}
-					{settings || account || login ? (
-						<div className="shrink-0 border-b border-line px-4 py-3 md:hidden dark:border-night-line">
-							{settings ? <ShellRow action={settings} muted /> : null}
-							{account ? (
-								<div className={settings ? "mt-3" : undefined}>
-									<Footer account={account} login={login} />
-								</div>
-							) : login ? (
-								<div className={settings ? "mt-3" : undefined}>
-									<Footer login={login} />
-								</div>
-							) : null}
-						</div>
-					) : null}
-
-					{/*
-					 * `id="main"` is the skip-link target. It lives here rather than in
-					 * each page so every route gets it, and so the skip link cannot
-					 * point at an element a page forgot to add.
-					 *
-					 * `overflow-y-auto` rather than letting the page scroll: the frame
-					 * is a fixed 760px, so the content has to scroll inside it or the
-					 * container grows past its own bottom edge.
-					 */}
-					<main
-						id="main"
-						className="scrollbar-slim flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto"
-					>
-						{children}
-					</main>
-				</div>
+				{/*
+				 * `id="main"` is the skip-link target. It lives here rather than in
+				 * each page so every route gets it, and so the skip link cannot point
+				 * at an element a page forgot to add.
+				 */}
+				<main
+					id="main"
+					className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto scrollbar-slim"
+				>
+					{children}
+				</main>
 			</div>
 		</div>
 	);
@@ -230,10 +237,9 @@ export function AppShell({
 /*
  * The action under the logo.
  *
- * A menu row, not a filled button. The brief sets it as a small plus beside
- * 10-12px dark teal text with a divider under it, and a filled forest button in
- * a 126px column would be a wall. It is the same pair Button uses in
- * primitives.tsx -- forest on cream, 11.63:1 -- just without the fill.
+ * A menu row, not a filled button: a filled forest button in a 226px content
+ * column is a wall, and the brief's sidebar is a list of things rather than a
+ * stack of buttons. Forest on cream, 11.63:1.
  */
 function ShellAction({
 	action,
@@ -246,20 +252,18 @@ function ShellAction({
 }) {
 	const body = (
 		<>
-			{action.icon ?? (
-				<PlusIcon className={size === "sm" ? "size-3.5 shrink-0" : "size-3.5 shrink-0"} />
-			)}
-			{action.label}
+			{action.icon ?? <PlusIcon size={14} />}
+			<span className="min-w-0 truncate">{action.label}</span>
 		</>
 	);
 
 	const classes = cx(
-		"flex items-center gap-1.5 font-medium text-forest transition-colors hover:text-brown dark:text-night-text dark:hover:text-cream",
+		"flex min-w-0 items-center gap-2 font-semibold text-forest transition-colors hover:text-maroon",
 		size === "sm"
-			? "shrink-0 rounded-lg px-2 py-1.5 text-[12px]"
-			: "w-full rounded-lg px-2 py-1.5 text-[11px]",
+			? "shrink-0 rounded-lg px-2 py-1.5 text-[13px]"
+			: "w-full rounded-lg px-2 py-1.5 text-[13px]",
 		// No hover affordance on a row that will not respond to a press.
-		action.disabled && "cursor-not-allowed hover:text-forest dark:hover:text-night-text",
+		action.disabled && "cursor-not-allowed hover:text-forest",
 		className,
 	);
 
@@ -271,32 +275,34 @@ function ShellAction({
 			{body}
 		</Link>
 	) : (
-		<button type="button" onClick={action.disabled ? undefined : action.onClick} className={classes}>
+		<button
+			type="button"
+			onClick={action.disabled ? undefined : action.onClick}
+			className={classes}
+		>
 			{body}
 		</button>
 	);
 }
 
 /**
- * A quiet sidebar row — Settings, and anything else that is not navigation.
+ * A quiet sidebar row -- Settings, and anything else that is not navigation.
  *
- * Visually a nav item so the sidebar has one row rhythm, but `muted` so it
- * recedes: it is not a place the reader is meant to go.
+ * Visually a nav item so the sidebar has one row rhythm, but in `--color-forest`
+ * rather than the muted grey of navigation, because the brief specifies forest
+ * for this row.
  */
-function ShellRow({ action, muted = false }: { action: Action; muted?: boolean }) {
+function ShellRow({ action }: { action: Action }) {
 	const classes = cx(
-		"flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[11px] transition-colors",
-		muted
-			? "text-muted hover:bg-forest/5 hover:text-forest dark:text-night-muted dark:hover:bg-cream/5 dark:hover:text-night-text"
-			: "text-forest hover:bg-forest/5 dark:text-night-text dark:hover:bg-cream/5",
+		"flex w-full min-w-0 items-center gap-2.5 rounded-lg px-2 py-1.5 text-[13px] font-semibold text-forest transition-colors hover:bg-forest/5",
 		// No hover affordance on a row that will not respond to a press.
-		action.disabled && "cursor-not-allowed hover:bg-transparent dark:hover:bg-transparent",
+		action.disabled && "cursor-not-allowed hover:bg-transparent",
 	);
 
 	const inner = (
 		<>
 			{action.icon}
-			{action.label}
+			<span className="min-w-0 truncate">{action.label}</span>
 		</>
 	);
 
@@ -327,6 +333,14 @@ function ShellRow({ action, muted = false }: { action: Action; muted?: boolean }
 	);
 }
 
+/**
+ * The sidebar's Login pill: forest fill, cream text, 11.63:1.
+ *
+ * `w-full` with no fixed width, so it fills whatever the sidebar's content column
+ * happens to be. The clipped-button bug this replaces came from a hard `w-[120px]`
+ * sitting inside a narrower padded column, which is the kind of number that has to
+ * be re-checked every time the sidebar width changes.
+ */
 function LoginLink({
 	login,
 	size = "md",
@@ -338,11 +352,13 @@ function LoginLink({
 		<Link
 			href={login.href}
 			className={cx(
-				"inline-flex items-center justify-center gap-1.5 rounded-full bg-forest font-medium text-cream transition-opacity hover:opacity-90",
-				size === "sm" ? "shrink-0 px-3 py-1.5 text-[11px]" : "w-full px-3 py-1.5 text-[11px]",
+				"flex items-center justify-center gap-2 rounded-full bg-forest font-semibold text-cream transition-opacity hover:opacity-90",
+				size === "sm"
+					? "h-[41px] shrink-0 px-4 text-[13px]"
+					: "h-[41px] w-full px-4 text-[13px]",
 			)}
 		>
-			<LogInIcon className="size-3.5 shrink-0" />
+			<LogInIcon size={14} />
 			{login.label ?? "Login"}
 		</Link>
 	);
@@ -358,22 +374,22 @@ function Footer({
 }) {
 	if (account) {
 		return (
-			<div className="rounded-xl border border-line-strong bg-paper/70 p-2.5 dark:border-night-line dark:bg-night-raised">
-				<p className="truncate text-[11px] font-medium text-forest dark:text-night-text">
+			<div className="min-w-0 rounded-xl border border-line-strong bg-paper p-3">
+				<p className="min-w-0 truncate text-[13px] font-semibold text-forest">
 					{account.name}
 				</p>
 				{account.detail ? (
-					<p className="mt-0.5 truncate text-[11px] text-muted dark:text-night-muted">
+					<p className="mt-0.5 min-w-0 truncate text-[11px] text-muted">
 						{account.detail}
 					</p>
 				) : null}
 				<button
 					type="button"
 					onClick={account.action.onClick}
-					className="mt-2 flex w-full items-center gap-1.5 rounded-lg px-1 py-1 text-[11px] font-medium text-muted transition-colors hover:text-brown dark:text-night-muted dark:hover:text-cream"
+					className="mt-2 flex w-full min-w-0 items-center gap-2 rounded-lg px-1 py-1 text-[13px] font-semibold text-muted transition-colors hover:text-maroon"
 				>
 					{account.action.icon}
-					{account.action.label}
+					<span className="min-w-0 truncate">{account.action.label}</span>
 				</button>
 			</div>
 		);

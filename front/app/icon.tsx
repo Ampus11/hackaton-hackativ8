@@ -5,7 +5,7 @@ import { ImageResponse } from "next/og";
  *
  * Two reasons. The obvious one is that a Next.js favicon has no business on a
  * genomics product. The better one is that this file *is* the mark: the helix
- * paths here and `HelixIcon` in `components/brand.tsx` are the same drawing, so
+ * paths here and `DnaIcon` in `components/brand.tsx` are the same drawing, so
  * there is one shape in the repo instead of an SVG and a PNG that drift apart
  * the first time someone nudges a curve.
  *
@@ -43,9 +43,12 @@ export default function Icon() {
 					fill="none"
 					strokeLinecap="round"
 				>
-					{/* Two mirrored strands. No rungs: at 32px they are sub-pixel. */}
+					{/* Two mirrored strands. No rungs: at 32px they are sub-pixel. The
+					    second strand is `#157F5A`, which is `--color-teal-ink` in
+					    globals.css -- spelled out because satori has no stylesheet
+					    and cannot read a custom property. */}
 					<path d="M12 3C18 5 18 10 12 12C6 14 6 19 12 21" stroke="#21A179" strokeWidth="2.4" />
-					<path d="M12 3C6 5 6 10 12 12C18 14 18 19 12 21" stroke="#1A8A66" strokeWidth="2.4" />
+					<path d="M12 3C6 5 6 10 12 12C18 14 18 19 12 21" stroke="#157F5A" strokeWidth="2.4" />
 				</svg>
 			</div>
 		),
