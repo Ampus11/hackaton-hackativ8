@@ -3,16 +3,74 @@
 /* ------------------------------------------------------------------ fonts -- */
 
 /*
- * `inline` because these point at the variables next/font writes onto <html>;
- * the utilities have to read the value at use time rather than capture it here.
+ * Three families, each with one job.
  *
- * Before this was wired up, `--font-geist-sans` was referenced but never
- * defined, so `font-sans` resolved to nothing and `body` fell back to a hard
- * Arial stack.
+ *   --font-display  Fraunces        headings and the wordmark. A serif is the
+ *                                     main signal that this is a research tool
+ *                                     and not a dashboard; it also keeps the
+ *                                     wordmark from reading as a SaaS logo.
+ *   --font-sans     Instrument Sans body copy, labels, buttons.
+ *   --font-mono     Geist Mono      sequences, counts, accessions, lengths,
+ *                                     dates, coordinates -- anything a reader
+ *                                     might compare character by character.
+ *
+ * `inline` because each points at a variable next/font writes onto <html>; the
+ * utility has to read the value at use time rather than capture it here.
  */
 @theme inline {
-	--font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+	--font-display: var(--font-fraunces), ui-serif, Georgia, serif;
+	--font-sans: var(--font-instrument-sans), ui-sans-serif, system-ui, sans-serif;
 	--font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* ----------------------------------------------------------------- tokens -- */
+
+@theme {
+	/* ---------------------------------------------------------- brand --- */
+	/* Verbatim from the palette. Do not shade these; derive from them below. */
+	--color-cream: #ffebcb; /* Background  */
+	--color-teal: #21a179; /* Primary    */
+	--color-forest: #023436; /* Text        */
+	--color-copper: #a76d60; /* Accent      */
+	--color-rust: #601700; /* Second. text*/
+
+	/*
+	 * Two shades of the same hues, darkened only far enough to clear WCAG.
+	 * Both are measured against `--color-cream`, which is the page background:
+	 *
+	 *   #21A179 teal   -> 2.80:1   fails the 3:1 floor for UI strokes
+	 *   #1A8A66        -> 3.69:1   passes
+	 *
+	 *   #7A6A55 muted  -> 4.48:1   just under the 4.5:1 floor for body text
+	 *   #6F6250        -> 5.09:1   passes
+	 *
+	 * `teal` itself is not a mistake and stays for the logo, large display type
+	 * and filled shapes where the text on top is large.
+	 */
+	--color-teal-deep: #1a8a66;
+	--color-muted: #6f6250;
+
+	/* ------------------------------------------------------- surfaces --- */
+	/*
+	 * Warm neutrals mixed from the palette rather than borrowed from a grey
+	 * scale. A neutral grey next to this cream reads as dirt; these carry the
+	 * same hue family so the whole page stays one temperature.
+	 */
+	--color-paper: #fffcf7; /* raised surface: cards, panels */
+	--color-shell: #fff6e6; /* page background, one step off cream */
+	--color-line: #eadcc2; /* hairline */
+	--color-line-strong: #d9c6a2; /* emphasised border, dashed */
+
+	/*
+	 * Dark mode reuses the palette rather than inventing a second theme: the
+	 * dark forest becomes the background and the cream becomes the text, which
+	 * is the same 11.63:1 pair as the light theme, inverted.
+	 */
+	--color-night: #02282b;
+	--color-night-raised: #07383b;
+	--color-night-line: #0d4749;
+	--color-night-muted: #a8b5ab;
+	--color-night-text: #ffe4bd;
 }
 
 /* ------------------------------------------------------------------- base -- */
@@ -23,45 +81,44 @@
 	}
 
 	body {
-		background-color: var(--color-zinc-50);
-		color: var(--color-zinc-900);
+		background-color: var(--color-shell);
+		color: var(--color-forest);
 		font-family: var(--font-sans);
 		text-rendering: optimizeLegibility;
 	}
 
 	@media (prefers-color-scheme: dark) {
 		body {
-			background-color: var(--color-zinc-950);
-			color: var(--color-zinc-100);
+			background-color: var(--color-night);
+			color: var(--color-night-text);
 		}
 	}
 
 	/*
-	 * One focus treatment for the whole app: a ring in the current text colour.
-	 * Components that need a brand-coloured focus override the colour only, so
-	 * shape and offset stay consistent. Keyboard focus is never removed -- only
-	 * suppressed for pointer users.
+	 * Focus ring in teal-deep. Every focusable thing on a cream background
+	 * clears 3:1 with it, which the brand teal does not -- see the token note
+	 * above. Pointer users never see it; keyboard users always do.
 	 */
 	:focus-visible {
-		outline: 2px solid var(--color-zinc-900);
+		outline: 2px solid var(--color-teal-deep);
 		outline-offset: 2px;
 	}
 
 	@media (prefers-color-scheme: dark) {
 		:focus-visible {
-			outline-color: var(--color-zinc-200);
+			outline-color: var(--color-teal);
 		}
 	}
 
 	::selection {
-		background-color: var(--color-zinc-200);
-		color: var(--color-zinc-900);
+		background-color: var(--color-teal);
+		color: #ffffff;
 	}
 
 	@media (prefers-color-scheme: dark) {
 		::selection {
-			background-color: var(--color-zinc-700);
-			color: var(--color-zinc-50);
+			background-color: var(--color-teal-deep);
+			color: var(--color-cream);
 		}
 	}
 
@@ -74,18 +131,31 @@
 /* -------------------------------------------------------------- utilities -- */
 
 @layer utilities {
+	/* Display type: the serif, optically balanced, never letter-spaced. */
+	.font-display {
+		font-family: var(--font-display);
+		font-optical-sizing: auto;
+	}
+
 	/*
-	 * Loading placeholders. A sweep rather than a pulse, because a pulse across
+	 * The wordmark lockup: all-caps serif over a spaced sans line. Set as one
+	 * utility so the two lines can never drift out of alignment.
+	 */
+	.wordmark {
+		font-family: var(--font-display);
+		font-weight: 600;
+		letter-spacing: 0.02em;
+		text-transform: uppercase;
+	}
+
+	/*
+	 * Loading placeholder. A sweep rather than a pulse, because a pulse across
 	 * a wide panel reads as a flicker instead of as "still working".
 	 */
 	.skeleton {
 		position: relative;
 		overflow: hidden;
-		background-color: var(--color-zinc-200);
-	}
-
-	.dark .skeleton {
-		background-color: var(--color-zinc-800);
+		background-color: var(--color-line);
 	}
 
 	.skeleton::after {
@@ -95,20 +165,11 @@
 		background-image: linear-gradient(
 			90deg,
 			transparent,
-			color-mix(in oklab, var(--color-zinc-50) 60%, transparent),
+			color-mix(in oklab, var(--color-paper) 65%, transparent),
 			transparent
 		);
 		content: "";
 		animation: skeleton-sweep 1.8s linear infinite;
-	}
-
-	.dark .skeleton::after {
-		background-image: linear-gradient(
-			90deg,
-			transparent,
-			color-mix(in oklab, var(--color-zinc-800) 60%, transparent),
-			transparent
-		);
 	}
 
 	@keyframes skeleton-sweep {
@@ -119,7 +180,7 @@
 
 	/*
 	 * A queued or processing analysis is the one place a live indicator earns
-	 * its animation: the row genuinely is changing underneath the reader.
+	 * its animation: that row genuinely is changing underneath the reader.
 	 */
 	@keyframes status-pulse {
 		0%,
@@ -138,11 +199,7 @@
 	/* Wide payloads scroll instead of stretching a panel past the fold. */
 	.scrollbar-slim {
 		scrollbar-width: thin;
-		scrollbar-color: var(--color-zinc-300) transparent;
-	}
-
-	.dark .scrollbar-slim {
-		scrollbar-color: var(--color-zinc-700) transparent;
+		scrollbar-color: var(--color-line-strong) transparent;
 	}
 }
 

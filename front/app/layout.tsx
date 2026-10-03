@@ -1,17 +1,28 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Fraunces, Geist_Mono, Instrument_Sans } from "next/font/google";
 
 import "./globals.css";
 
 /*
- * Self-hosted by next/font at build time — no request leaves the browser for
- * Google. `variable` puts the family on a CSS variable instead of a class, so
- * `globals.css` can hand it to Tailwind's `--font-sans` / `--font-mono` and the
- * whole app inherits it from one place.
+ * Fonts are self-hosted at build time -- no request leaves the browser for
+ * Google. `variable` puts each family on a CSS variable so globals.css can hand
+ * them to Tailwind and the whole app inherits them from one place.
+ *
+ * Fraunces is loaded as a variable font with its weight axis only. It also
+ * carries SOFT and WONK, which next/font will not accept a value for in
+ * TypeScript, and without them requested they are not in the subset -- so CSS
+ * cannot reach them either. Optical sizing is set in globals.css instead, which
+ * is the axis that actually matters at heading sizes.
  */
-const geistSans = Geist({
+const fraunces = Fraunces({
 	subsets: ["latin"],
-	variable: "--font-geist-sans",
+	variable: "--font-fraunces",
+	display: "swap",
+});
+
+const instrumentSans = Instrument_Sans({
+	subsets: ["latin"],
+	variable: "--font-instrument-sans",
 	display: "swap",
 });
 
@@ -22,36 +33,45 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-	metadataBase: new URL("https://genomic-insight.pages.dev"),
+	metadataBase: new URL("https://gene-pilot.pages.dev"),
 	title: {
-		default: "Genomic Insight",
-		template: "%s · Genomic Insight",
+		default: "Gene Pilot — Research Tool",
+		template: "%s · Gene Pilot",
 	},
 	description:
-		"A workspace for nucleotide data. Import FASTA or GenBank files, queue GC content and open reading frame analyses, and read the results as charts and tables.",
-	applicationName: "Genomic Insight",
-	keywords: ["genomics", "FASTA", "GenBank", "GC content", "ORF", "bioinformatics"],
-	authors: [{ name: "Genomic Insight" }],
+		"Upload a FASTA file and ask for a specific analysis. An agent works out which tools the request needs, runs them deterministically, and explains the result in plain language. For research and education.",
+	applicationName: "Gene Pilot",
+	keywords: [
+		"bioinformatics",
+		"genomics",
+		"FASTA",
+		"GenBank",
+		"GC content",
+		"ORF",
+		"BLAST",
+		"sequence analysis",
+	],
+	authors: [{ name: "Gene Pilot" }],
 	openGraph: {
 		type: "website",
-		title: "Genomic Insight",
+		title: "Gene Pilot — Research Tool",
 		description:
-			"Import sequences, queue analyses, and read the results as charts and tables.",
-		siteName: "Genomic Insight",
+			"An agentic bioinformatics assistant that shows its working. Deterministic computation first, explanation second.",
+		siteName: "Gene Pilot",
 	},
 	twitter: {
 		card: "summary_large_image",
-		title: "Genomic Insight",
+		title: "Gene Pilot — Research Tool",
 		description:
-			"Import sequences, queue analyses, and read the results as charts and tables.",
+			"An agentic bioinformatics assistant that shows its working. Deterministic computation first, explanation second.",
 	},
 	robots: { index: true, follow: true },
 };
 
 export const viewport: Viewport = {
 	themeColor: [
-		{ media: "(prefers-color-scheme: light)", color: "#f7f8fa" },
-		{ media: "(prefers-color-scheme: dark)", color: "#0b0f14" },
+		{ media: "(prefers-color-scheme: light)", color: "#FFF6E6" },
+		{ media: "(prefers-color-scheme: dark)", color: "#02282B" },
 	],
 };
 
@@ -59,7 +79,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
 	return (
 		<html
 			lang="en"
-			className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+			className={`${fraunces.variable} ${instrumentSans.variable} ${geistMono.variable} h-full antialiased`}
 		>
 			<body className="flex min-h-full flex-col">{children}</body>
 		</html>
