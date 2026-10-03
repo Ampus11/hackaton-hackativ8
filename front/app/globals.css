@@ -260,6 +260,23 @@
 		animation: status-pulse 1.5s ease-in-out infinite;
 	}
 
+	/*
+	 * Centring that cannot push content out of reach.
+	 *
+	 * `justify-content: center` in a flex column aligns overflow to *both* edges,
+	 * so when the children are taller than the box the top of them lands above
+	 * the scrollable area and cannot be scrolled to. `safe center` keeps the
+	 * centring when there is room and falls back to `start` when there is not.
+	 *
+	 * Written as two declarations on purpose: browsers without `safe` drop the
+	 * second and keep `center`, so this is a plain centring rule that improves
+	 * where it can rather than a bet on support.
+	 */
+	.justify-center-safe {
+		justify-content: center;
+		justify-content: safe center;
+	}
+
 	/* Wide payloads scroll instead of stretching a panel past the fold. */
 	.scrollbar-slim {
 		scrollbar-width: thin;
