@@ -34,20 +34,49 @@ export type NavItem = {
 	active?: boolean;
 };
 
-type Action = { label: string; href?: string; onClick?: () => void; icon?: ReactNode };
+type Action = {
+	label: string;
+	href?: string;
+	onClick?: () => void;
+	icon?: ReactNode;
+	/**
+	 * Present but not wired. `href` and `onClick` are both still supplied --
+	 * usually as a no-op -- so the row renders and announces as unavailable
+	 * rather than looking live and silently doing nothing when pressed.
+	 */
+	disabled?: boolean;
+	/** Shown on hover, so a disabled row can explain itself. */
+	note?: string;
+};
 
 type AppShellProps = {
 	children: ReactNode;
 	nav?: NavItem[];
-	/** The primary action — "New Analysis" in the design. */
+	/** The primary action, directly under the logo — "+ New analysis". */
 	action?: Action;
+	/**
+	 * The middle of the sidebar: the Recent section. A slot rather than a prop
+	 * because its contents differ by session — saved analyses when signed in, a
+	 * login call and a line explaining why when not.
+	 */
+	recent?: ReactNode;
+	/** The bottom-most row — Settings in the design. */
+	settings?: Action;
 	/** Signed out only. Replaced by the account block when there is a user. */
 	login?: { label?: string; href: string };
 	/** Signed-in identity, rendered in the sidebar footer and under the mobile bar. */
 	account?: { name: string; detail?: string; action: { label: string; onClick: () => void; icon: ReactNode } };
 };
 
-export function AppShell({ children, nav = [], action, login, account }: AppShellProps) {
+export function AppShell({
+	children,
+	nav = [],
+	action,
+	recent,
+	settings,
+	login,
+	account,
+}: AppShellProps) {
 	return (
 		<div className="flex min-h-full flex-1 flex-col lg:flex-row">
 			{/* ------------------------------------------------------- sidebar -- */}
@@ -85,8 +114,21 @@ export function AppShell({ children, nav = [], action, login, account }: AppShel
 					</nav>
 				) : null}
 
+				{/* Middle: grows to fill, so the bottom row stays pinned down. */}
+				<div className="mt-7 min-h-0 grow">{recent}</div>
+
 				<div className="mt-auto pt-6">
-					<Footer account={account} login={login} />
+					{settings ? <ShellRow action={settings} muted /> : null}
+					{/* `mt-2` only when there is something above it. */}
+					{account ? (
+						<div className={settings ? "mt-4" : undefined}>
+							<Footer account={account} login={login} />
+						</div>
+					) : login ? (
+						<div className={settings ? "mt-4" : undefined}>
+							<Footer login={login} />
+						</div>
+					) : null}
 				</div>
 			</aside>
 
@@ -104,13 +146,23 @@ export function AppShell({ children, nav = [], action, login, account }: AppShel
 				</header>
 
 				{/*
-				 * The footer again, on mobile. The sidebar above is `hidden` below
-				 * `lg`, so without this there would be no sign-out on a phone --
-				 * every action has to exist on each layout that renders one.
+				 * The sidebar footer again, on mobile. The sidebar above is
+				 * `hidden` below `lg`, so without this there would be no
+				 * Settings and no sign-out on a phone -- every action has to exist
+				 * on each layout that renders one.
 				 */}
-				{account || login ? (
-					<div className="border-b border-line px-4 py-4 lg:hidden dark:border-night-line">
-						<Footer account={account} login={login} />
+				{settings || account || login ? (
+					<div className="border-b border-line px-4 py-3 lg:hidden dark:border-night-line">
+						{settings ? <ShellRow action={settings} muted /> : null}
+						{account ? (
+							<div className={settings ? "mt-3" : undefined}>
+								<Footer account={account} login={login} />
+							</div>
+						) : login ? (
+							<div className={settings ? "mt-3" : undefined}>
+								<Footer login={login} />
+							</div>
+						) : null}
 					</div>
 				) : null}
 
@@ -119,7 +171,7 @@ export function AppShell({ children, nav = [], action, login, account }: AppShel
 				 * each page so every route gets it, and so the skip link cannot
 				 * point at an element that a page forgot to add.
 				 */}
-				<main id="main" className="min-w-0 flex-1">
+				<main id="main" className="flex min-w-0 flex-1 flex-col">
 					{children}
 				</main>
 			</div>
@@ -160,6 +212,56 @@ function ShellAction({ action, size = "md", className }: { action: Action; size?
 	) : (
 		<button type="button" onClick={action.onClick} className={classes}>
 			{body}
+		</button>
+	);
+}
+
+/**
+ * A quiet sidebar row — Settings, and anything else that is not navigation.
+ *
+ * Visually a nav item so the sidebar has one row rhythm, but `muted` so it
+ * recedes: it is not a place the reader is meant to go.
+ */
+function ShellRow({ action, muted = false }: { action: Action; muted?: boolean }) {
+	const classes = cx(
+		"flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors",
+		muted
+			? "text-muted hover:bg-forest/5 hover:text-forest dark:text-night-muted dark:hover:bg-cream/5 dark:hover:text-night-text"
+			: "text-forest hover:bg-forest/5 dark:text-night-text dark:hover:bg-cream/5",
+		// No hover affordance on a row that will not respond to a press.
+		action.disabled && "cursor-not-allowed hover:bg-transparent dark:hover:bg-transparent",
+	);
+
+	const inner = (
+		<>
+			{action.icon}
+			{action.label}
+		</>
+	);
+
+	// A disabled row is not a link at all -- it has nowhere to go, and
+	// `next/link` will not accept an absent `href`. A `<span>` is also the
+	// honest element: no pointer, no tab stop, and the note is announced with
+	// it rather than only appearing on hover.
+	if (action.disabled) {
+		return (
+			<span title={action.note} aria-disabled className={classes}>
+				{inner}
+			</span>
+		);
+	}
+
+	if (action.href) {
+		return (
+			<Link href={action.href} className={classes}>
+				{inner}
+			</Link>
+		);
+	}
+
+	return (
+		<button type="button" onClick={action.onClick} className={classes}>
+			{inner}
 		</button>
 	);
 }

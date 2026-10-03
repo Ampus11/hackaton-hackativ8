@@ -169,7 +169,7 @@ function SequenceRow({
 					disabled={busy || !canQueue}
 					className={cx(
 						"rounded-lg border border-line-strong bg-paper px-2 py-1.5 font-mono text-xs",
-						"focus:border-teal-deep disabled:opacity-50",
+						"focus:border-teal-ink disabled:opacity-50",
 						"dark:border-night-line dark:bg-night dark:text-night-text",
 					)}
 				>

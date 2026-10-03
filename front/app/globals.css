@@ -35,19 +35,18 @@
 	--color-rust: #601700; /* Second. text*/
 
 	/*
-	 * Two shades of the same hues, darkened only far enough to clear WCAG.
-	 * Both are measured against `--color-cream`, which is the page background:
+	 * Two shades of the same hue, and the split is measured, not aesthetic.
+	 * Against `--color-cream`, the page background:
 	 *
-	 *   #21A179 teal   -> 2.80:1   fails the 3:1 floor for UI strokes
-	 *   #1A8A66        -> 3.69:1   passes
+	 *   #21A179 teal   -> 2.80:1   below the 3:1 floor for a stroke
+	 *   #157F5A        -> 4.27:1   clears it, and carries white text at 4.98:1
 	 *
-	 *   #7A6A55 muted  -> 4.48:1   just under the 4.5:1 floor for body text
-	 *   #6F6250        -> 5.09:1   passes
-	 *
-	 * `teal` itself is not a mistake and stays for the logo, large display type
-	 * and filled shapes where the text on top is large.
+	 * So `teal` is a *mark* colour -- the helix, large display type, filled
+	 * shapes -- and never a border, a focus ring or a button with small text on
+	 * it. `teal-ink` is the teal that has to do work. Every other pairing is
+	 * forest on cream (11.63:1) or cream on forest.
 	 */
-	--color-teal-deep: #1a8a66;
+	--color-teal-ink: #157f5a;
 	--color-muted: #6f6250;
 
 	/* ------------------------------------------------------- surfaces --- */
@@ -95,12 +94,12 @@
 	}
 
 	/*
-	 * Focus ring in teal-deep. Every focusable thing on a cream background
+	 * Focus ring in teal-ink. Every focusable thing on a cream background
 	 * clears 3:1 with it, which the brand teal does not -- see the token note
 	 * above. Pointer users never see it; keyboard users always do.
 	 */
 	:focus-visible {
-		outline: 2px solid var(--color-teal-deep);
+		outline: 2px solid var(--color-teal-ink);
 		outline-offset: 2px;
 	}
 
@@ -117,7 +116,7 @@
 
 	@media (prefers-color-scheme: dark) {
 		::selection {
-			background-color: var(--color-teal-deep);
+			background-color: var(--color-teal-ink);
 			color: var(--color-cream);
 		}
 	}

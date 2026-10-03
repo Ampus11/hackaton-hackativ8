@@ -56,13 +56,14 @@ curl -s http://localhost:3000/workspace | rg -o '/_next/static/chunks/[^"]+' | s
 ```
 app/
   layout.tsx        html shell, font wiring, metadata, light/dark base
-  page.tsx          landing page (Server Component)
+  page.tsx          home screen (Server Component): sidebar slots + the column
   icon.tsx          generated favicon, same helix drawing as brand.tsx
   not-found.tsx     404, rendered inside the root layout
   workspace/page.tsx the client half
 components/
   app-shell.tsx     desktop sidebar / mobile top bar, wraps every page
-  brand.tsx         helix mark, wordmark, and the eleven-icon set
+  home-main.tsx     the home column: headline, drop zone, composer (client)
+  brand.tsx         helix mark, wordmark, and the fourteen-icon set
   chat-bar.tsx      the ask input, filled and plain variants
   upload-target.tsx the drop zone; hands over a FileList, never reads it
   workspace.tsx     session gate, project picker, and the owner of all server state
@@ -117,24 +118,48 @@ eyeballed, against `--color-cream` (WCAG needs 4.5:1 for body text and 3:1 for a
 So three tokens were derived, darkened along the *same hue* until they cleared the floor.
 No new colour was invented; these are the palette's own shades:
 
-| Derived              | Hex       | From     | Ratio  | Used for                        |
-| -------------------- | --------- | -------- | ------ | ------------------------------- |
-| `--color-teal-deep`  | `#1A8A66` | teal     | 3.69:1 | focus ring, active strokes      |
-| `--color-muted`      | `#6F6250` | warm grey| 5.09:1 | secondary text on cream         |
-| `--color-night-*`    | —         | forest   | —      | dark mode, see below             |
+| Derived            | Hex       | From      | Ratio  | Used for                            |
+| ------------------ | --------- | --------- | ------ | ----------------------------------- |
+| `--color-teal-ink` | `#157F5A` | teal      | 4.27:1 | the dark teal pill, focus rings, active strokes, muted success |
+| `--color-muted`    | `#6F6250` | warm grey | 5.09:1 | secondary text on cream             |
+| `--color-night-*`  | —         | forest    | —      | dark mode, see below                 |
+
+`teal-ink` replaces an earlier `--color-teal-deep` that sat at 3.69:1. It was not kept,
+because it could not carry white text (4.31:1, still under 4.5) and so could not be the
+Login pill the design asks for. One shade now does both jobs.
 
 The rules that follow, which a future change should not quietly undo:
 
 - **`forest` fills the primary button, `rust` fills the accent.** Never teal. A filled teal
   button lands at 3.7:1 with cream text, which is under the floor for body copy.
-- **Teal is a mark colour, never a surface.** It is the helix, the eyebrow text, the logo,
-  the completed status. It is not a button and not a border.
-- **Copper is an edge colour.** It draws the dashed upload border and icon strokes. It is
-  never a fill with text on it — `--color-rust` is the same hue and clears the floor at
-  11.11:1, so it does that job instead.
+- **Teal is a mark colour, never a surface.** It is the helix, the eyebrow, the logo. It is
+  not a button and not a border — except as the one exception below.
+- **`teal-ink` is the teal that does work.** Any teal that carries text, draws a border or
+  shows up as a focus ring.
+- **Copper is an edge colour.** It draws icon strokes. It is never a fill with text on it —
+  `--color-rust` is the same hue and clears the floor at 11.11:1, so it does that job.
+- **Rust draws the drop zone.** The brief calls for a terracotta dashed border; rust is
+  terracotta, and it measures 11.11:1 on the shell where copper measures 3.60:1 and sits
+  right on the floor a 2px dashed rule needs.
 - **The dark palette reuses the brand rather than inventing a second theme.** `--color-night`
   is a darkened forest, `--color-night-text` a cream. Same pair, inverted — which is why
   dark mode holds the same 11.63:1.
+
+### The composer is three measured colours
+
+The `filled` chat bar is the most constrained thing in the app, and all three of its colours
+were measured against each other rather than picked:
+
+| Pair                                | Ratio  | Why it matters                            |
+| ----------------------------------- | ------ | ----------------------------------------- |
+| cream placeholder on rust           | 11.11:1 | body text on the bar                     |
+| green button `#21A179` on the rust bar | 3.97:1 | the button edge against its background   |
+| forest arrow on the green button     | 4.16:1 | the icon (non-text, so 3:1 is the floor) |
+
+The arrow is forest rather than cream because cream on `#21A179` is 2.80:1 — a shape, not a
+symbol. And the button is the *light* brand teal, not `teal-ink`: a darker teal against
+rust falls to 2.16:1 and the button stops being findable. That inversion is the one place
+the lighter teal is correct, and it is deliberate.
 
 ### Warm neutrals, not grey
 
@@ -178,17 +203,19 @@ The scale, and where each step is used:
 
 - **Borders, not shadows, carry separation.** Panels are
   `rounded-xl border border-line bg-paper`.
-- **No gradient heroes, no blurred orbs, no glassmorphism, no grid backdrops.** The hero
-  opens with a statement and a *worked example* — a real FASTA record from the project spec
-  and the real numbers it produces. A mockup of our own UI would only be a picture of a
-  promise.
+- **No gradient heroes, no blurred orbs, no glassmorphism, no grid backdrops.** The home
+  screen is one centred column, because that is what the design specifies — and a sparse
+  screen only works if the one thing on it is unmistakable.
 - **Motion only where state is genuinely moving.** A queued or processing analysis gets a
-  pulsing dot, because that row really is changing underneath the reader. Loading waits get
-  a skeleton sweep so the layout holds still. Nothing else animates, and
+  pulsing dot, because that row really is changing underneath the reader. Loading waits and
+  drag-over get a state change, not an animation. Nothing loops, and
   `prefers-reduced-motion` collapses all of it.
 - **Two layouts from one shell.** `app-shell.tsx` is a persistent sidebar on the brand cream
   above `lg`, and a sticky top bar below it. It does not collapse into a disclosure — every
-  action that appears in one layout appears in the other, including sign-out.
+  action that appears in one layout appears in the other, including Settings and sign-out.
+- **A control that cannot work says so.** Settings is in the design and has no route, so it
+  renders as a `<span>` with `aria-disabled` and a hover note, rather than a live-looking
+  button that silently swallows the click.
 
 ### Extending it
 
@@ -284,12 +311,14 @@ bundle; all the stateful work is in `back/`, which stays on its own host.
 - Nothing in this directory talks to anything but the `back/` API, and it does so only through
   `lib/api.ts`.
 - **Open mismatch: the spec is guest-first, this workspace is not.** The development plan makes
-  login optional — "authentication is not a prerequisite for using the basic tools" — and the
-  landing page copy says so. But `workspace.tsx` still resolves the session first and renders
-  `AuthView` for anyone anonymous, so a visitor who only wants to run one analysis is turned
-  away. This is a logic change, not a display one, so it has not been made here. It needs a
-  decision: either the gate is relaxed and guest job ids come from the anonymous session
-  identifier instead of a user id, or the landing page stops promising it.
+  login optional — "authentication is not a prerequisite for using the basic tools". The home
+  screen's own copy is closer to the truth than the old landing page was ("You need to login
+  first to save your recent analysis" implies you can still work), but `workspace.tsx` still
+  resolves the session first and renders `AuthView` for anyone anonymous, so a visitor who
+  only wants to run one analysis is turned away. This is a logic change, not a display one, so
+  it has not been made here. It needs a decision: either the gate is relaxed and guest job ids
+  come from the anonymous session identifier instead of a user id, or the copy stops implying
+  it.
 - **The design has never been seen.** There is no browser attached to the development
   session, so every change was verified by `tsc`, `eslint`, `next build` and by reading the
   served HTML and compiled CSS over HTTP. Contrast ratios were computed, but **no one has
@@ -300,9 +329,13 @@ bundle; all the stateful work is in `back/`, which stays on its own host.
   (no Docker). The signed-out and error paths are the only ones actually executed. The
   fragile parts are the presigned upload preflight, status polling, `SameSite` cookie
   behaviour across sites, and rendering a finished result.
-- `chat-bar.tsx` and `upload-target.tsx` exist and are styled, but nothing mounts them yet —
-  the chat interface is not built. They are presentational and controlled, so wiring them up
-  is a matter of owning the state at the call site.
+- **The home screen's two controls are presentational.** The drop zone hands its `FileList` to
+  a handler that navigates to `/workspace`, because there is no project yet for the bytes to
+  belong to — the real importer is `sequence-import.tsx`. The composer owns the typed text and
+  nothing else; it has no `onSubmit`, so sending is inert. Both are one call site away from
+  being real.
+- Settings has no route. It is rendered `aria-disabled` rather than wired to something
+  arbitrary, so nobody clicks it expecting a preferences panel.
 - The result charts, the composition table and the notes panel are research and education
   surfaces. Nothing here is a clinical or diagnostic tool, and the UI says so wherever a
   result is displayed.

@@ -14,7 +14,7 @@ export const cx = (...values: Array<string | false | null | undefined>) =>
  *
  *   cream on forest   11.63:1   primary button
  *   cream on rust     11.11:1   accent button
- *   teal-deep         3.69:1    focus ring and active stroke only
+ *   teal-ink         3.69:1    focus ring and active stroke only
  *   teal              2.80:1    too low for a stroke, so never one
  *
  * That last number is why there is no `variant="teal"` on Button: a filled teal
@@ -81,7 +81,7 @@ export const Notice = ({
 	// to someone who has not learned the palette.
 	const tones = {
 		info: {
-			box: "border-teal-deep/40 bg-teal-deep/10 text-forest dark:border-teal/40 dark:bg-teal/10 dark:text-night-text",
+			box: "border-teal-ink/40 bg-teal-ink/10 text-forest dark:border-teal/40 dark:bg-teal/10 dark:text-night-text",
 			Icon: InfoIcon,
 		},
 		error: {
@@ -166,7 +166,7 @@ export const Field = ({
 			{...props}
 			className={cx(
 				"w-full rounded-lg border border-line-strong bg-paper px-3 py-2 text-sm text-forest",
-				"placeholder:text-muted focus:border-teal-deep",
+				"placeholder:text-muted focus:border-teal-ink",
 				"dark:border-night-line dark:bg-night dark:text-night-text dark:placeholder:text-night-muted dark:focus:border-teal",
 			)}
 		/>
@@ -185,7 +185,7 @@ export const TextArea = ({
 			{...props}
 			className={cx(
 				"w-full rounded-lg border border-line-strong bg-paper px-3 py-2 font-mono text-xs text-forest",
-				"focus:border-teal-deep",
+				"focus:border-teal-ink",
 				"dark:border-night-line dark:bg-night dark:text-night-text dark:focus:border-teal",
 			)}
 		/>
@@ -206,7 +206,7 @@ export const TextArea = ({
 const STATUS_TONES: Record<AnalysisStatus, string> = {
 	queued: "bg-shell text-muted dark:bg-night dark:text-night-muted",
 	processing: "bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200",
-	completed: "bg-teal/15 text-teal-deep dark:bg-teal/15 dark:text-teal",
+	completed: "bg-teal/15 text-teal-ink dark:bg-teal/15 dark:text-teal",
 	failed: "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-200",
 };
 

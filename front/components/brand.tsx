@@ -46,7 +46,7 @@ export const HelixIcon = ({
 		{/* Strand B: the same curve mirrored. */}
 		<path
 			d="M12 3C6 5 6 10 12 12C18 14 18 19 12 21"
-			stroke="var(--color-teal-deep)"
+			stroke="var(--color-teal-ink)"
 			strokeWidth="2"
 		/>
 		{showRungs ? (
@@ -195,5 +195,47 @@ export const TrashIcon = ({ className }: IconProps) => (
 export const ChevronIcon = ({ className }: IconProps) => (
 	<svg {...svg(className)}>
 		<path d="M8 10l4 4 4-4" />
+	</svg>
+);
+
+export const ArrowUpIcon = ({ className }: IconProps) => (
+	<svg {...svg(className)}>
+		<path d="M12 19.5V5" />
+		<path d="M5.5 11.5L12 5l6.5 6.5" />
+	</svg>
+);
+
+/**
+ * The gear, as eight short teeth around a ring. Drawn at 1.5 like the rest of
+ * the set rather than at the heavier weight a gear usually gets, because the
+ * icons sit next to 12px labels and a thick gear reads as a separate tier.
+ */
+export const GearIcon = ({ className }: IconProps) => (
+	<svg {...svg(className)}>
+		<circle cx="12" cy="12" r="3.2" />
+		<path d="M12 2.6v2.8M12 18.6v2.8M2.6 12h2.8M18.6 12h2.8" />
+		<path d="M5.35 5.35l1.98 1.98M16.67 16.67l1.98 1.98M18.65 5.35l-1.98 1.98M7.33 16.67l-1.98 1.98" />
+	</svg>
+);
+
+/**
+ * An open cardboard box, in line art.
+ *
+ * Four strokes and no fill: the standing back flap, the opening dipping into
+ * the box, the tapered body, and the two side flaps folded outward. It is the
+ * upload target's only illustration, so it carries the affordance on its own --
+ * which is why the flaps are there and not just a cube. A cube would read as
+ * "package", and this is the one control on the page that takes a file.
+ */
+export const OpenBoxIcon = ({ className }: IconProps) => (
+	<svg {...svg(className)}>
+		{/* the flap standing up behind the box */}
+		<path d="M7 8.4V4.2h10v4.2" />
+		{/* the opening, dipping down into the box */}
+		<path d="M4.6 8.6L12 12.3l7.4-3.7" />
+		{/* the body, tapering for perspective */}
+		<path d="M4.6 8.6L6.4 20h11.2l1.8-11.4" />
+		{/* side flaps folded outward */}
+		<path d="M4.6 8.6L2.3 11.4M19.4 8.6l2.3 2.8" />
 	</svg>
 );
