@@ -48,8 +48,9 @@ curl -s http://localhost:3000/workspace | rg -o '/_next/static/chunks/[^"]+' | s
 
 ```
 app/
-  layout.tsx        html shell, title template, light/dark tokens
+  layout.tsx        html shell, font wiring, title template, light/dark base
   page.tsx          landing page (Server Component)
+  not-found.tsx     404, rendered inside the root layout
   workspace/page.tsx the client half
 components/
   workspace.tsx     session gate, project picker, and the owner of all server state
@@ -60,7 +61,7 @@ components/
   composition-chart.tsx Recharts, client-only
   notes-panel.tsx      per-project message log
   auth-view.tsx        sign in / sign up
-  primitives.tsx       shared layout, buttons, fields, status badges
+  primitives.tsx       shared layout, buttons, fields, badges, skeletons
 lib/
   api.ts            transport, ApiRequestError, error classification
   genomics.ts       one typed wrapper per endpoint
@@ -73,6 +74,76 @@ scripts/
 `lib/` is layered on purpose. `api.ts` owns transport and knows nothing about genomics;
 `genomics.ts` owns endpoint contracts and knows nothing about React; `sequence.ts` and
 `result.ts` own pure derivations. A component imports the layer it needs and no deeper.
+
+## Design system
+
+There is no custom palette. That is the rule, and it is worth stating because the obvious
+move — invent a brand colour, add a gradient hero — is the wrong one here.
+
+**Colour in this app is data, not decoration.** Four meanings already need it:
+
+| Meaning      | Where                 | Treatment                                     |
+| ------------ | --------------------- | --------------------------------------------- |
+| Base identity | composition chart     | A green, T red, G blue, C amber — SnapGene / Benchling convention |
+| Job status    | `StatusBadge`         | amber processing, emerald completed, red failed |
+| Severity      | `Notice`              | sky info, red error, emerald success          |
+
+So the neutral ramp is Tailwind's `zinc` and nothing else. There is no accent colour
+reserved for "the brand", because there is no surface in this product that is not already
+competing for a colour channel, and decoration is the one thing that should lose. The
+landing page uses `zinc-900` on white for its primary action — the same ink the primary
+button already used.
+
+Consequences that follow from this, and that a future change should not quietly undo:
+
+- **No gradient heroes, no blurred colour orbs, no glassmorphism, no background grid
+  patterns.** The landing page opens with a statement and a worked example instead.
+- **Borders, not shadows, carry separation.** Panels are `rounded-lg border border-zinc-200`
+  on `bg-white`. The single soft shadow in the app is on the one thing that reads as a
+  raised surface.
+- **Monospace means data.** Sequence ids, base counts, accessions, lengths, dates and file
+  sizes are `font-mono`; prose is not. Geist Sans and Geist Mono are wired through
+  `next/font` in `app/layout.tsx` and exposed as `--font-sans` / `--font-mono`.
+- **Dense where it is informative, spacious where it is prose.** The capability list is a
+  divided `dl`; the hero has room to breathe. A lab tool is judged on whether you can
+  compare two numbers.
+- **Motion only where state is genuinely moving.** A queued or processing analysis gets a
+  pulsing dot, because that row really is changing underneath the reader. Loading waits get
+  a skeleton sweep so the layout holds still. Nothing else animates, and
+  `prefers-reduced-motion` collapses all of it.
+
+### Extending it
+
+Adding a semantic colour: pick from the existing Tailwind scales (`emerald`, `amber`, `red`,
+`sky`) and name the meaning in the constant next to its use — the same way `STATUS_TONES`
+does. If a new colour needs inventing, it needs a second meaning that does not collide with
+the four base colours, because those are load-bearing in every screenshot anyone takes of
+this app.
+
+Adding a loading state: use `Skeleton` or `SkeletonRows` from `primitives.tsx` with the
+shape the real content will have. Do not add a `"Loading…"` string — a placeholder that
+changes the layout when content arrives is worse than a blank one.
+
+## Division of labour
+
+This directory is the presentation layer, and it is the only part of it that is finished.
+The split is deliberate and should stay visible:
+
+| Owned here (frontend)                          | Owned elsewhere                              |
+| ---------------------------------------------- | -------------------------------------------- |
+| Layout, typography, colour, spacing, dark mode | Endpoint contracts and their enforcement      |
+| Responsive behaviour, web and mobile           | Auth, session issuance, ownership checks      |
+| Loading, empty, error and pending *presentation* | Which state is real, and when it changes   |
+| Rendering whatever shape `result_json` arrives in | Producing that payload (Bio service)      |
+| Copy, disclaimers, scientific wording          | The science: Biopython, BLAST, NCBI          |
+
+Two consequences for anyone editing this directory:
+
+- **A component may assume nothing about the backend.** `result_json` is untyped and the
+  Bio service has not shipped; the reader is written to degrade, not to throw.
+- **Presentation must not decide truth.** The reported/derived distinction on `gc_content`
+  is the rule: a number this code computed is never rendered as one a tool reported. That
+  applies to any field added later.
 
 ## Server state
 
@@ -133,6 +204,13 @@ bundle; all the stateful work is in `back/`, which stays on its own host.
 
 - Nothing in this directory talks to anything but the `back/` API, and it does so only through
   `lib/api.ts`.
+- **Open mismatch: the spec is guest-first, this workspace is not.** The development plan makes
+  login optional — "authentication is not a prerequisite for using the basic tools" — and the
+  landing page copy now says so. But `workspace.tsx` still resolves the session first and
+  renders `AuthView` for anyone anonymous, so a visitor who only wants to run one analysis is
+  turned away. This is a logic change, not a display one, so it has not been made here. It
+  needs a decision: either the gate is relaxed and guest job ids come from the anonymous
+  session identifier instead of a user id, or the landing page stops promising it.
 - The workspace has been written against the route handlers in `back/src/routes/` but has never
   been run against a live API, because the backend cannot start on the development machine
   (no Docker). The signed-out and error paths are the only ones actually executed. The

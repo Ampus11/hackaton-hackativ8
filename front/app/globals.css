@@ -1,26 +1,157 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ------------------------------------------------------------------ fonts -- */
 
+/*
+ * `inline` because these point at the variables next/font writes onto <html>;
+ * the utilities have to read the value at use time rather than capture it here.
+ *
+ * Before this was wired up, `--font-geist-sans` was referenced but never
+ * defined, so `font-sans` resolved to nothing and `body` fell back to a hard
+ * Arial stack.
+ */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+	--font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+	--font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ------------------------------------------------------------------- base -- */
+
+@layer base {
+	html {
+		-webkit-text-size-adjust: 100%;
+	}
+
+	body {
+		background-color: var(--color-zinc-50);
+		color: var(--color-zinc-900);
+		font-family: var(--font-sans);
+		text-rendering: optimizeLegibility;
+	}
+
+	@media (prefers-color-scheme: dark) {
+		body {
+			background-color: var(--color-zinc-950);
+			color: var(--color-zinc-100);
+		}
+	}
+
+	/*
+	 * One focus treatment for the whole app: a ring in the current text colour.
+	 * Components that need a brand-coloured focus override the colour only, so
+	 * shape and offset stay consistent. Keyboard focus is never removed -- only
+	 * suppressed for pointer users.
+	 */
+	:focus-visible {
+		outline: 2px solid var(--color-zinc-900);
+		outline-offset: 2px;
+	}
+
+	@media (prefers-color-scheme: dark) {
+		:focus-visible {
+			outline-color: var(--color-zinc-200);
+		}
+	}
+
+	::selection {
+		background-color: var(--color-zinc-200);
+		color: var(--color-zinc-900);
+	}
+
+	@media (prefers-color-scheme: dark) {
+		::selection {
+			background-color: var(--color-zinc-700);
+			color: var(--color-zinc-50);
+		}
+	}
+
+	/* Tabular figures keep a column of numbers still as its values change. */
+	.font-mono {
+		font-variant-numeric: tabular-nums;
+	}
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* -------------------------------------------------------------- utilities -- */
+
+@layer utilities {
+	/*
+	 * Loading placeholders. A sweep rather than a pulse, because a pulse across
+	 * a wide panel reads as a flicker instead of as "still working".
+	 */
+	.skeleton {
+		position: relative;
+		overflow: hidden;
+		background-color: var(--color-zinc-200);
+	}
+
+	.dark .skeleton {
+		background-color: var(--color-zinc-800);
+	}
+
+	.skeleton::after {
+		position: absolute;
+		inset: 0;
+		transform: translateX(-100%);
+		background-image: linear-gradient(
+			90deg,
+			transparent,
+			color-mix(in oklab, var(--color-zinc-50) 60%, transparent),
+			transparent
+		);
+		content: "";
+		animation: skeleton-sweep 1.8s linear infinite;
+	}
+
+	.dark .skeleton::after {
+		background-image: linear-gradient(
+			90deg,
+			transparent,
+			color-mix(in oklab, var(--color-zinc-800) 60%, transparent),
+			transparent
+		);
+	}
+
+	@keyframes skeleton-sweep {
+		100% {
+			transform: translateX(100%);
+		}
+	}
+
+	/*
+	 * A queued or processing analysis is the one place a live indicator earns
+	 * its animation: the row genuinely is changing underneath the reader.
+	 */
+	@keyframes status-pulse {
+		0%,
+		100% {
+			opacity: 1;
+		}
+		50% {
+			opacity: 0.3;
+		}
+	}
+
+	.animate-status-pulse {
+		animation: status-pulse 1.5s ease-in-out infinite;
+	}
+
+	/* Wide payloads scroll instead of stretching a panel past the fold. */
+	.scrollbar-slim {
+		scrollbar-width: thin;
+		scrollbar-color: var(--color-zinc-300) transparent;
+	}
+
+	.dark .scrollbar-slim {
+		scrollbar-color: var(--color-zinc-700) transparent;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+	}
 }

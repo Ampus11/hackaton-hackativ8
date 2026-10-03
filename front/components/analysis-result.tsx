@@ -14,9 +14,13 @@ const CompositionChart = dynamic(
 	() => import("./composition-chart").then((mod) => mod.CompositionChart),
 	{
 		ssr: false,
+		// A placeholder at the chart's own height, so the panel does not grow when
+		// the real chart arrives and the axes can settle.
 		loading: () => (
-			<div className="flex h-56 items-center justify-center text-xs text-zinc-400">
-				Loading chart…
+			<div className="flex h-56 w-full items-end gap-3 px-2 pb-4">
+				{[70, 55, 40, 32].map((height) => (
+					<div key={height} className="skeleton flex-1 rounded-t" style={{ height: `${height}%` }} />
+				))}
 			</div>
 		),
 	},

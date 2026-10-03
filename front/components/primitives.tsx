@@ -40,6 +40,35 @@ export const Empty = ({ children }: { children: ReactNode }) => (
 	</p>
 );
 
+/* -------------------------------------------------------------- skeleton --- */
+
+/**
+ * Loading placeholder.
+ *
+ * Every waiting state in the app shows one of these rather than a "Loading…"
+ * string, so the layout holds still instead of jumping when real content
+ * arrives. The shape is passed in from the caller, which keeps this free of
+ * any knowledge about what is being loaded.
+ */
+export const Skeleton = ({ className }: { className?: string }) => (
+	<div aria-hidden className={cx("skeleton rounded", className)} />
+);
+
+/** A panel-shaped placeholder, for the moments before a board has any data. */
+export const SkeletonRows = ({ rows = 3 }: { rows?: number }) => (
+	<div className="flex flex-col gap-2">
+		{Array.from({ length: rows }, (_, index) => (
+			<div
+				key={index}
+				className="rounded-lg border border-zinc-200 p-3 dark:border-zinc-800"
+			>
+				<Skeleton className="h-3 w-2/5" />
+				<Skeleton className="mt-2 h-2.5 w-1/4" />
+			</div>
+		))}
+	</div>
+);
+
 /* --------------------------------------------------------------- notice --- */
 
 export const Notice = ({
@@ -145,16 +174,31 @@ const STATUS_TONES: Record<AnalysisStatus, string> = {
 	failed: "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-200",
 };
 
-export const StatusBadge = ({ status }: { status: AnalysisStatus }) => (
-	<span
-		className={cx(
-			"inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium capitalize",
-			STATUS_TONES[status],
-		)}
-	>
-		{status}
-	</span>
-);
+export const StatusBadge = ({ status }: { status: AnalysisStatus }) => {
+	const pending = isPending(status);
+
+	return (
+		<span
+			className={cx(
+				"inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium capitalize",
+				STATUS_TONES[status],
+			)}
+		>
+			{/*
+			 * A dot only on the two non-terminal states. It is the one place a
+			 * moving indicator is honest: those rows really are still changing,
+			 * where a spinner anywhere else would just be decoration.
+			 */}
+			{pending ? (
+				<span
+					aria-hidden
+					className="animate-status-pulse size-1.5 shrink-0 rounded-full bg-current opacity-70"
+				/>
+			) : null}
+			{status}
+		</span>
+	);
+};
 
 /** `queued` and `processing` are the only non-terminal states worth polling for. */
 export const isPending = (status: AnalysisStatus) =>
