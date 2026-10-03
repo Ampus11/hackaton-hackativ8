@@ -13,11 +13,14 @@ import { cx } from "./primitives";
  * stays outside. That also means it works unchanged whether the next step is a
  * presigned PUT, a proxied upload, or nothing wired up yet.
  *
- * The border is a dashed `--color-rust`. Rust rather than copper because it is
- * the brief's terracotta and it measures 11.11:1 on the shell, where copper
- * measures 3.60:1 and would sit right on the edge of the 3:1 floor a 2px dashed
- * rule needs. The icon is the same rust, which is why the box reads as one shape
- * rather than a brown frame around a grey glyph.
+ * The border is a 1.5px dotted `--color-brown`, which is the brief's `#6D2700`.
+ * It measures 9.28:1 on the cream surface, well clear of the 3:1 a hairline
+ * needs, so nothing had to be corrected here. The box is transparent rather than
+ * a shade lighter than the cream: the brief allows either, and transparency is
+ * the one that leaves the surface reading as one plane.
+ *
+ * Sizes are the caller's. The home screen passes the brief's 280x135 and 85% on
+ * a phone; nothing here assumes either.
  */
 
 type UploadTargetProps = {
@@ -58,26 +61,29 @@ export function UploadTarget({
 			onDragLeave={() => setOver(false)}
 			onDrop={onDrop}
 			className={cx(
-				"rounded-2xl border-2 border-dashed px-6 py-14 text-center transition-colors",
-				// Drag-over swaps to the ink teal: it is the only signal that the
-				// target is live, and terracotta-on-terracotta would be invisible.
-				over ? "border-teal-ink bg-teal-ink/5" : "border-rust bg-paper",
+				"flex flex-col items-center justify-center rounded-[10px] border-[1.5px] border-dotted px-5 text-center transition-colors",
+				/*
+				 * Drag-over swaps to the ink teal. It is the only signal that the
+				 * target is live, and brown-on-brown would be invisible.
+				 */
+				over ? "border-teal-ink bg-teal-ink/5" : "border-brown",
 				disabled && "pointer-events-none opacity-60",
-				"dark:bg-night-raised",
 				className,
 			)}
 		>
 			<OpenBoxIcon
 				className={cx(
-					"mx-auto size-11 transition-colors",
-					over ? "text-teal-ink" : "text-rust",
+					"shrink-0 transition-colors",
+					over ? "text-teal-ink" : "text-brown",
 				)}
 			/>
 
-			<p className="mt-5 text-sm font-medium text-forest dark:text-night-text">{label}</p>
+			<p className="mt-2.5 max-w-[26ch] text-[11px] font-medium leading-snug text-forest dark:text-night-text">
+				{label}
+			</p>
 
 			{hint ? (
-				<p className="mx-auto mt-1.5 max-w-sm text-xs leading-relaxed text-muted dark:text-night-muted">
+				<p className="mx-auto mt-1.5 max-w-sm text-[11px] leading-relaxed text-muted dark:text-night-muted">
 					{hint}
 				</p>
 			) : null}

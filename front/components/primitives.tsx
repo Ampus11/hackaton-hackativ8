@@ -10,17 +10,22 @@ export const cx = (...values: Array<string | false | null | undefined>) =>
 
 /*
  * Every colour below comes from the palette in globals.css, and every pairing
- * has been measured rather than eyeballed. The two that shaped this file:
+ * has been measured rather than eyeballed. The four that shaped this file, all
+ * against `--color-paper` `#FFFCF7` or `--color-cream` `#FFEBCB`:
  *
  *   cream on forest   11.63:1   primary button
- *   cream on rust     11.11:1   accent button
- *   teal-ink         3.69:1    focus ring and active stroke only
- *   teal              2.80:1    too low for a stroke, so never one
+ *   cream on brown     9.28:1   accent button
+ *   teal-ink           4.87:1   focus ring, active stroke, dashed rules
+ *   teal               2.80:1   below the 3:1 floor, so never one of those
  *
  * That last number is why there is no `variant="teal"` on Button: a filled teal
  * button lands at 3.7:1 with cream text, which fails the 4.5:1 floor for body
- * copy. Teal stays a mark colour -- the helix, large display type, a selected
- * border -- and never becomes a surface.
+ * copy. Teal stays a mark colour -- the helix, the composer submit button -- and
+ * never becomes a surface or an edge.
+ *
+ * `--color-dust` at 4.35:1 is the one secondary that is allowed to draw a line.
+ * `--color-line-strong` is not, at 1.64:1: it is a divider between two panels of
+ * the same surface, not information, so it only has to be quiet.
  */
 
 /* --------------------------------------------------------------- layout --- */
@@ -46,7 +51,7 @@ export const Panel = ({
 	>
 		<header className="flex flex-wrap items-start justify-between gap-3 border-b border-line px-4 py-3 dark:border-night-line">
 			<div>
-				{/* Display serif for panel titles: the same hierarchy as the page. */}
+				{/* Panel titles share the page's display treatment: same family, tighter. */}
 				<h2 className="font-display text-[15px] font-semibold leading-tight text-forest dark:text-night-text">
 					{title}
 				</h2>
@@ -62,8 +67,18 @@ export const Panel = ({
 	</section>
 );
 
+/*
+ * The empty placeholder: a dashed rule around a sentence saying there is nothing
+ * here yet.
+ *
+ * The rule is `--color-dust`, not `--color-line-strong`. A dashed border is a
+ * boundary the reader is meant to see, so it owes the 3:1 that non-text
+ * information requires, and on the paper surface `#D9C6A2` measures 1.64:1
+ * against `#A76660`'s 4.35:1. It is also the brief's secondary accent, which is
+ * what a second visual weight in the palette is for.
+ */
 export const Empty = ({ children }: { children: ReactNode }) => (
-	<p className="rounded-lg border border-dashed border-line-strong px-3 py-6 text-center text-xs leading-relaxed text-muted dark:border-night-line dark:text-night-muted">
+	<p className="rounded-lg border border-dashed border-dust px-3 py-6 text-center text-xs leading-relaxed text-muted dark:border-night-muted dark:border-night-muted/60">
 		{children}
 	</p>
 );
@@ -130,7 +145,7 @@ export const Button = ({
 	const variants = {
 		primary:
 			"bg-forest text-cream hover:bg-forest/90 dark:bg-cream dark:text-forest dark:hover:bg-white",
-		accent: "bg-rust text-cream hover:bg-rust/90",
+		accent: "bg-brown text-cream hover:bg-brown/90",
 		ghost:
 			"border border-line-strong bg-paper text-forest hover:bg-shell dark:border-night-line dark:bg-night dark:text-night-text dark:hover:bg-night-raised",
 	} as const;
@@ -199,7 +214,7 @@ export const TextArea = ({
  * Status colours come from the semantics, not the palette: queued is neutral,
  * processing is amber because that is what amber has always meant, completed is
  * brand teal because "done" and "the brand" agree, and failed is red because
- * nothing else would survive a colour-blind reader. Rust is deliberately absent
+ * nothing else would survive a colour-blind reader. Brown is deliberately absent
  * -- it is the accent button, and reusing it here would make a destructive
  * action and a fatal error the same colour.
  */

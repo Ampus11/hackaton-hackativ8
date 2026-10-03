@@ -61,9 +61,9 @@ app/
   not-found.tsx     404, rendered inside the root layout
   workspace/page.tsx the client half
 components/
-  app-shell.tsx     desktop sidebar / mobile top bar, wraps every page
+  app-shell.tsx     the charcoal frame, 150px sidebar / mobile top bar, wraps every page
   home-main.tsx     the home column: headline, drop zone, composer (client)
-  brand.tsx         helix mark, wordmark, and the fourteen-icon set
+  brand.tsx         helix mark, stacked wordmark lockup, and the eighteen-icon set
   chat-bar.tsx      the ask input, filled and plain variants
   upload-target.tsx the drop zone; hands over a FileList, never reads it
   workspace.tsx     session gate, project picker, and the owner of all server state
@@ -92,81 +92,84 @@ scripts/
 
 ### The palette
 
-Five colours, verbatim, from the brief:
+Six colours, verbatim, from the brief. Nothing here was adjusted to make it work:
 
-| Token         | Hex       | Role in the brief         |
-| ------------- | --------- | ------------------------- |
-| `--color-cream`  | `#FFEBCB` | Background            |
-| `--color-teal`   | `#21A179` | Primary              |
-| `--color-forest` | `#023436` | Text                  |
-| `--color-copper` | `#A76D60` | Secondary accent      |
-| `--color-rust`   | `#601700` | Secondary text        |
+| Token              | Hex       | Role                                                   |
+| ------------------ | --------- | ------------------------------------------------------ |
+| `--color-cream`    | `#FFEBCB` | the app surface                                        |
+| `--color-teal`     | `#21A179` | primary: the helix, the composer submit button         |
+| `--color-forest`   | `#023436` | all text, the Login pill, the accent button            |
+| `--color-dust`     | `#A76660` | secondary accent: dashed rules and icon strokes        |
+| `--color-brown`    | `#6D2700` | the drop zone border, the composer bar, accent button  |
+| `--color-charcoal` | `#1E1E1E` | the outer screen the app container sits on             |
 
-**Two of the five cannot be used the way the brief uses them.** Both were measured, not
-eyeballed, against `--color-cream` (WCAG needs 4.5:1 for body text and 3:1 for a UI stroke):
+Every pairing the brief asks for was measured against the surface it lands on. WCAG wants
+4.5:1 for body text and 3:1 for a UI stroke or an icon:
 
-| Pair                | Ratio  | Verdict                                          |
-| ------------------- | ------ | ------------------------------------------------ |
-| white on `--color-teal` | 3.26:1 | fails — cannot be a button fill            |
-| `--color-teal` on cream | 2.80:1 | fails — cannot be a border or focus ring    |
-| cream on `--color-copper` | 3.60:1 | fails — cannot be a filled bar with text   |
-| white on `--color-copper` | 4.20:1 | fails — same                                    |
-| cream on `--color-forest` | 11.63:1 | passes — primary button                     |
-| cream on `--color-rust` | 11.11:1 | passes — accent button                       |
-| `--color-copper` on cream | 3.60:1 | passes — borders and icons only            |
+| Pair                        | Ratio    | Verdict                                       |
+| --------------------------- | -------- | --------------------------------------------- |
+| cream on `--color-forest`   | 11.63:1  | passes — Login pill, primary button           |
+| cream on `--color-brown`    | 9.28:1   | passes — composer bar text, drop zone border  |
+| forest on `--color-cream`   | 11.63:1  | passes — all body text                        |
+| `--color-dust` on paper     | 4.35:1   | passes — the `Empty` placeholder              |
+| `--color-dust` on cream     | 3.82:1   | passes — dashed rules, icon strokes only      |
+| `--color-teal` on brown     | 3.32:1   | passes — the submit button's edge (3:1 floor) |
+| white on `--color-teal`     | 3.26:1   | passes — the submit arrow (3:1 floor)         |
+| `--color-teal` on cream     | 2.80:1   | **fails** — never a border or a focus ring    |
 
-So three tokens were derived, darkened along the *same hue* until they cleared the floor.
-No new colour was invented; these are the palette's own shades:
+The brief's own choices all clear their floor, including the two that look marginal on
+paper. The white arrow on the teal button is 3.26:1, and it passes because an icon owes the
+3:1 non-text ratio rather than the 4.5:1 one. Cream on that same teal would have been
+2.80:1 — a shape rather than a symbol — which is why the bar's text is cream and the arrow
+inside the button is white. Same hue family, different job, different floor.
 
-| Derived            | Hex       | From      | Ratio  | Used for                            |
-| ------------------ | --------- | --------- | ------ | ----------------------------------- |
-| `--color-teal-ink` | `#157F5A` | teal      | 4.27:1 | the dark teal pill, focus rings, active strokes, muted success |
-| `--color-muted`    | `#6F6250` | warm grey | 5.09:1 | secondary text on cream             |
-| `--color-night-*`  | —         | forest    | —      | dark mode, see below                 |
+One shade is derived, darkened along the *same hue* until it cleared the 3:1 floor. No new
+colour was invented:
 
-`teal-ink` replaces an earlier `--color-teal-deep` that sat at 3.69:1. It was not kept,
-because it could not carry white text (4.31:1, still under 4.5) and so could not be the
-Login pill the design asks for. One shade now does both jobs.
+| Derived            | Hex       | From      | Ratio            | Used for                                     |
+| ------------------ | --------- | --------- | ---------------- | -------------------------------------------- |
+| `--color-teal-ink` | `#157F5A` | teal      | 4.27:1 cream, 4.87:1 paper | focus rings, active strokes, muted success |
+| `--color-muted`    | `#6F6250` | warm grey | 5.09:1 cream    | secondary text                               |
+| `--color-night-*`  | —         | forest    | —                | dark mode, see below                         |
 
 The rules that follow, which a future change should not quietly undo:
 
-- **`forest` fills the primary button, `rust` fills the accent.** Never teal. A filled teal
-  button lands at 3.7:1 with cream text, which is under the floor for body copy.
-- **Teal is a mark colour, never a surface.** It is the helix, the eyebrow, the logo. It is
-  not a button and not a border — except as the one exception below.
-- **`teal-ink` is the teal that does work.** Any teal that carries text, draws a border or
-  shows up as a focus ring.
-- **Copper is an edge colour.** It draws icon strokes. It is never a fill with text on it —
-  `--color-rust` is the same hue and clears the floor at 11.11:1, so it does that job.
-- **Rust draws the drop zone.** The brief calls for a terracotta dashed border; rust is
-  terracotta, and it measures 11.11:1 on the shell where copper measures 3.60:1 and sits
-  right on the floor a 2px dashed rule needs.
+- **`forest` fills the primary button, `brown` fills the accent.** Never teal. A filled teal
+  button lands at 3.7:1 with cream text, which is under the 4.5:1 floor for body copy.
+- **Teal is a mark colour and one button.** It is the helix and the composer's submit button.
+  It is never a border, a focus ring or a text colour — `teal-ink` is the teal that does work.
+- **`dust` is the only secondary allowed to draw a line.** `--color-line-strong` is a divider
+  between two panels of the same surface, not information, so it only has to be quiet; a
+  dashed rule that *is* information has to clear 3:1, and `#D9C6A2` does not at 1.64:1.
+- **Brown draws the drop zone and fills the composer.** Both are the brief's `#6D2700`, and it
+  measures 9.28:1 on cream, so nothing had to be substituted.
 - **The dark palette reuses the brand rather than inventing a second theme.** `--color-night`
   is a darkened forest, `--color-night-text` a cream. Same pair, inverted — which is why
   dark mode holds the same 11.63:1.
 
-### The composer is three measured colours
+### The frame is part of the design
 
-The `filled` chat bar is the most constrained thing in the app, and all three of its colours
-were measured against each other rather than picked:
+The brief describes a framed app, not a full-bleed page: a charcoal `#1E1E1E` outer screen
+with a cream container centred in it at up to 1360×760, rounded at 15px, split into a 150px
+sidebar and a main area by a single hairline. That lives in `app-shell.tsx`, not in the root
+layout, because it is a property of *the app* and both routes share it.
 
-| Pair                                | Ratio  | Why it matters                            |
-| ----------------------------------- | ------ | ----------------------------------------- |
-| cream placeholder on rust           | 11.11:1 | body text on the bar                     |
-| green button `#21A179` on the rust bar | 3.97:1 | the button edge against its background   |
-| forest arrow on the green button     | 4.16:1 | the icon (non-text, so 3:1 is the floor) |
+Two things follow from it that are worth knowing before editing:
 
-The arrow is forest rather than cream because cream on `#21A179` is 2.80:1 — a shape, not a
-symbol. And the button is the *light* brand teal, not `teal-ink`: a darker teal against
-rust falls to 2.16:1 and the button stops being findable. That inversion is the one place
-the lighter teal is correct, and it is deliberate.
+- **The container has a fixed height, so the main area scrolls rather than the page.** The
+  `overflow-y-auto` on `<main>` is load-bearing: without it the content grows past the
+  container's own bottom edge and the "frame" stops being one.
+- **Below `md` the frame is dropped entirely.** The container goes edge to edge and the
+  charcoal margin disappears, because on a phone a decorative margin costs a whole row of the
+  screen. That is also why the breakpoint is `md` and not `lg` — the brief says 768px.
 
 ### Warm neutrals, not grey
 
 There is no grey scale in this palette, and borrowing Tailwind's would be wrong: a neutral
 grey next to this cream reads as dirt. So the surfaces are warm neutrals mixed from the
-palette — `--color-shell` (page), `--color-paper` (raised), `--color-line` (hairline),
-`--color-line-strong` (emphasised). The whole page stays one temperature.
+palette — `--color-paper` (raised panels), `--color-shell` (inset areas),
+`--color-line` (hairline), `--color-line-strong` (emphasised). The whole app stays one
+temperature.
 
 ### Base identity is not brand
 
@@ -178,53 +181,84 @@ they sit *beside* the brand, not inside it.
 
 ### Type
 
-Three families, each with one job, all self-hosted through `next/font`:
+Two families, each with one job, both self-hosted through `next/font`:
 
-| Variable             | Family           | Job                                                       |
-| -------------------- | ---------------- | -------------------------------------------------------- |
-| `--font-display`     | Fraunces         | headings and the wordmark. The serif is the main signal that this is a research tool and not a dashboard |
-| `--font-sans`        | Instrument Sans  | body copy, labels, buttons                               |
-| `--font-mono`        | Geist Mono       | sequences, counts, accessions, dates — anything compared character by character, with tabular figures so a column of numbers stays still |
+| Variable         | Family          | Job                                                                                                          |
+| ---------------- | --------------- | ------------------------------------------------------------------------------------------------------------- |
+| `--font-sans`    | Instrument Sans | everything: headings, labels, body, buttons. The brief asks for "a modern clean sans-serif similar to Inter, Poppins or Montserrat", so this product has **no serif in it** |
+| `--font-mono`    | Geist Mono      | sequences, counts, accessions, dates — anything compared character by character, with tabular figures so a column of numbers stays still |
+
+`--font-display` is still defined, as an alias for the sans stack rather than a second
+family. The call sites were written when the heading *was* a serif, and renaming every one
+of them to restate that it is not would be churn for no change in what renders.
 
 The scale, and where each step is used:
 
-| Step          | Treatment                                                        |
-| ------------- | ---------------------------------------------------------------- |
-| Hero H1       | `font-display` 4xl/5xl, `600`, `tracking-tight`, `text-balance`  |
-| Section H2    | `font-display` 2xl/3xl, `600`, `tracking-tight`                 |
-| Panel title   | `font-display` 15px, `600`                                       |
-| Body          | `font-sans` `sm`/`base`, `leading-relaxed`                      |
-| Label         | `font-sans` `xs`, `500`                                          |
-| Eyebrow       | `font-mono` 11px, uppercase, `tracking-[0.18em]`, teal-deep      |
-| Data          | `font-mono`, tabular figures                                     |
-| Caption       | `font-sans` 11px, `--color-muted`                                |
+| Step           | Treatment                                                        |
+| -------------- | ---------------------------------------------------------------- |
+| Home H1        | `font-display` 18px, `600`, `text-balance` — the brief's own size |
+| Page H2        | `font-display` 15–18px, `600`, `tracking-tight`                 |
+| Panel title    | `font-display` 15px, `600`                                       |
+| Body           | `font-sans` `sm`/`base`, `leading-relaxed`                      |
+| Sidebar label  | `font-sans` 11px, `500`                                         |
+| Caption        | `font-sans` 11px, `--color-muted`                                |
+| Data           | `font-mono`, tabular figures                                     |
+| Wordmark       | all-caps, `600`, `tracking-[0.06em]` — wide tracking is right at 40px and turns "GENE" into "G E N E" at 12px |
+
+### Where the type deviates from the brief, and why
+
+The brief specifies a compact canvas — 8–9px placeholders, 8–10px body, 10–12px sidebar
+labels, a 20px submit circle. Those are all floored, and every deviation is listed here so
+it can be reverted deliberately rather than by accident:
+
+| Brief      | Used  | Why                                                                             |
+| ---------- | ----- | ------------------------------------------------------------------------------- |
+| 8–9px placeholder / body | **11px** | below roughly 11px, text stops being legible on a 1× laptop panel. WCAG sets no minimum, which is exactly why this has to be a judgement call |
+| 7–8px sidebar helper | **11px** | same floor. In a 126px column this wraps to about eight lines and fills the sidebar's empty middle, which the brief asks for anyway |
+| 7–8px "RESEARCH TOOL" | **10px** | the one exception, because it is a category label rather than something to read |
+| 10–12px sidebar label | 11px | as specified                                                 |
+| 18px heading | 18px | as specified, and unchanged from the brief even though the rest of the app uses larger type elsewhere |
+| 20px submit circle | **24px** | it is the only submit control on the screen and 20px is a small thumb target. The bar grew to absorb it rather than the arrow shrinking |
+
+The brief's *proportions* are followed exactly — a 150px sidebar, a 280×135 drop zone, a
+315px composer, content biased 135px down with roughly 400px of empty cream beneath it. It
+is only the absolute text sizes that moved.
 
 ### Everything else
 
 - **Borders, not shadows, carry separation.** Panels are
-  `rounded-xl border border-line bg-paper`.
+  `rounded-xl border border-line bg-paper`. The brief rules out excessive shadows, and the
+  frame needs none either: cream on charcoal is 14.29:1, so the edge between them is not
+  ambiguous without one.
 - **No gradient heroes, no blurred orbs, no glassmorphism, no grid backdrops.** The home
-  screen is one centred column, because that is what the design specifies — and a sparse
+  screen is one centred column, because that is what the design specifies - and a sparse
   screen only works if the one thing on it is unmistakable.
 - **Motion only where state is genuinely moving.** A queued or processing analysis gets a
   pulsing dot, because that row really is changing underneath the reader. Loading waits and
   drag-over get a state change, not an animation. Nothing loops, and
   `prefers-reduced-motion` collapses all of it.
-- **Two layouts from one shell.** `app-shell.tsx` is a persistent sidebar on the brand cream
-  above `lg`, and a sticky top bar below it. It does not collapse into a disclosure — every
-  action that appears in one layout appears in the other, including Settings and sign-out.
+- **Two layouts from one shell.** `app-shell.tsx` is the framed desktop container above
+  `md` (768px) and a full-bleed single column with a compact top bar below it. It does not
+  collapse into a disclosure - every action that appears in one layout appears in the other,
+  including Settings and sign-out.
 - **A control that cannot work says so.** Settings is in the design and has no route, so it
   renders as a `<span>` with `aria-disabled` and a hover note, rather than a live-looking
-  button that silently swallows the click.
+  button that silently swallows the click. `+ New analysis` is a menu row rather than a
+  filled button, because a 126px-wide filled forest button is a wall in a 150px sidebar.
 
 ### Extending it
 
 Adding a semantic colour: prefer a token from the table above. If a genuinely new one is
-needed, check it against `--color-cream` first, and keep it clear of the four base identity
-colours — those are load-bearing in every screenshot anyone takes of this app. Status and
-severity colours (`STATUS_TONES` in `primitives.tsx`, the `tones` map in `Notice`) are
-semantics rather than brand: a failure has to read as a failure to someone who has not
-learned the palette, which is why they are amber, red and teal rather than brand hues.
+needed, check it against `--color-cream` first, and keep it clear of the six brief colours -
+those are load-bearing in every screenshot anyone takes of this app. Status and severity
+colours (`STATUS_TONES` in `primitives.tsx`, the `tones` map in `Notice`) are semantics
+rather than brand: a failure has to read as a failure to someone who has not learned the
+palette, which is why they are amber, red and teal rather than brand hues.
+
+Note that Tailwind only emits a `@theme` variable once something references it. All six
+brief colours are live in `globals.css` and each one is currently used, so they all appear
+in the compiled CSS - but a token that nothing uses will silently vanish from the build
+rather than sitting there waiting.
 
 Adding a loading state: use `Skeleton` or `SkeletonRows` from `primitives.tsx` with the
 shape the real content will have. Do not add a `"Loading…"` string — a placeholder that
@@ -321,9 +355,18 @@ bundle; all the stateful work is in `back/`, which stays on its own host.
   it.
 - **The design has never been seen.** There is no browser attached to the development
   session, so every change was verified by `tsc`, `eslint`, `next build` and by reading the
-  served HTML and compiled CSS over HTTP. Contrast ratios were computed, but **no one has
-  looked at it.** Spacing, rhythm, the cream page background, dark mode and the sidebar at
-  every breakpoint are all unverified by eye.
+  served HTML and compiled CSS over HTTP. Contrast ratios were computed and every element
+  the brief specifies was confirmed present in the output, but **no one has looked at it.**
+  The charcoal frame, the 150px sidebar at its real width, the spacing rhythm, dark mode
+  and the mobile layout are all unverified by eye. The text sizes were floored upward from
+  the brief's 8px, which changes the vertical rhythm of every screen and is the single most
+  likely thing to look wrong.
+- **The charcoal frame is a judgement call made from the brief's numbers.** At 1440×900 the
+  1360×760 container leaves roughly 40px of charcoal at the sides and 70px above and below.
+  On a larger display those margins grow, because the container is capped rather than
+  stretched. If the frame is meant to be a mockup of a specific viewport rather than the
+  product's real chrome, the cap and the `md:p-8` gutter in `app-shell.tsx` are the two
+  numbers to change.
 - The workspace has been written against the route handlers in `back/src/routes/` but has never
   been run against a live API, because the backend cannot start on the development machine
   (no Docker). The signed-out and error paths are the only ones actually executed. The

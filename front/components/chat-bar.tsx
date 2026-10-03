@@ -6,27 +6,27 @@ import { ArrowUpIcon, PaperclipIcon } from "./brand";
 import { cx } from "./primitives";
 
 /*
- * The chat bar, in the two variants from the design system.
+ * The chat bar, in the two variants the app uses.
  *
  * Presentational only. It holds no state: `value` and `onChange` make it a
  * controlled input, so wherever it is mounted stays the single owner of what has
  * been typed. `onSubmit` is optional -- without it the form will not submit,
  * which is the safe default for a component that has nothing to do with a reply.
  *
- * The `filled` variant is the hero bar at the foot of the main column: `--color-rust`
- * filled, a paperclip on the left and a green up-arrow on the right.
+ * The `filled` variant is the hero bar at the foot of the home column: the
+ * brief's `#6D2700` bar, fully rounded, with a teal circle on the right. Three
+ * colours are load-bearing in it and all three were measured against each other
+ * rather than picked:
  *
- * Three colours are load-bearing in that bar, and all three were measured
- * against each other rather than picked:
+ *   cream placeholder on brown   9.28:1
+ *   teal button on the brown bar 3.32:1   (the edge, needs 3:1)
+ *   white arrow on the teal      3.26:1   (an icon, needs 3:1)
  *
- *   cream placeholder on rust   11.11:1
- *   green button on rust bar     3.97:1   (the edge, needs 3:1)
- *   forest arrow on green        4.16:1   (an icon, needs 3:1)
- *
- * The arrow is forest rather than cream because cream on `#21A179` is only
- * 2.80:1 -- it would have been a shape rather than a symbol. And the button is
- * the *light* teal, not the dark one used elsewhere for borders: a darker teal
- * against rust drops to 2.16:1 and the button stops being findable.
+ * Both of the tight ones pass on the *non-text* floor rather than the 4.5:1 one,
+ * which is the right floor for a button edge and an arrow. The white arrow is
+ * worth a note because cream on the same teal is 2.80:1 -- it would have been a
+ * shape rather than a symbol. The bar uses cream; the arrow inside the button
+ * uses white. Different jobs, different floor, different colour.
  */
 
 type ChatBarProps = {
@@ -61,10 +61,10 @@ export function ChatBar({
 		<form
 			onSubmit={submit}
 			className={cx(
-				"flex items-center gap-2 border p-1.5 pl-5 transition-colors",
+				"flex items-center gap-1.5 p-1 transition-colors",
 				filled
-					? "rounded-full border-rust bg-rust text-cream focus-within:ring-2 focus-within:ring-teal"
-					: "rounded-xl border-line-strong bg-paper text-forest focus-within:border-teal-ink dark:border-night-line dark:bg-night dark:text-night-text dark:focus-within:border-teal",
+					? "rounded-full bg-brown text-cream focus-within:ring-2 focus-within:ring-teal focus-within:ring-offset-2 focus-within:ring-offset-cream dark:focus-within:ring-offset-night"
+					: "rounded-xl border border-line-strong bg-paper text-forest focus-within:border-teal-ink dark:border-night-line dark:bg-night-raised dark:text-night-text dark:focus-within:border-teal",
 				disabled && "opacity-60",
 				className,
 			)}
@@ -82,45 +82,48 @@ export function ChatBar({
 				placeholder={placeholder}
 				aria-label={label}
 				className={cx(
-					"min-w-0 flex-1 bg-transparent py-2 text-sm outline-none",
+					"min-w-0 flex-1 bg-transparent outline-none",
 					filled
-						? "text-cream placeholder:text-cream/70"
-						: "text-forest placeholder:text-muted dark:text-night-text dark:placeholder:text-night-muted",
+						? "px-3.5 text-[11px] text-cream placeholder:text-cream"
+						: "px-3 py-2 text-sm text-forest placeholder:text-muted dark:text-night-text dark:placeholder:text-night-muted",
 				)}
 			/>
 
 			{/*
-			 * Icon-only and `aria-labelled` rather than `aria-label`: the label is
-			 * already written above as "Attach a file", and repeating it here
-			 * would make a screen reader say it twice for one control.
+			 * The paperclip is only on the plain variant. The filled bar sits
+			 * directly under a drop zone, so a second way to attach a file on the
+			 * same screen is redundancy rather than a shortcut -- and the brief
+			 * shows the hero bar carrying the send button alone.
 			 */}
-			<button
-				type="button"
-				disabled={disabled}
-				aria-label="Attach a FASTA file"
-				className={cx(
-					"shrink-0 rounded-full p-2 transition-colors",
-					filled
-						? "text-cream/75 hover:bg-cream/15 hover:text-cream"
-						: "text-muted hover:bg-shell hover:text-forest dark:text-night-muted dark:hover:bg-night-raised dark:hover:text-night-text",
-				)}
-			>
-				<PaperclipIcon className="size-4" />
-			</button>
+			{filled ? null : (
+				<button
+					type="button"
+					disabled={disabled}
+					aria-label="Attach a FASTA file"
+					className="shrink-0 rounded-full p-2 text-muted transition-colors hover:bg-shell hover:text-forest dark:text-night-muted dark:hover:bg-cream/10 dark:hover:text-night-text"
+				>
+					<PaperclipIcon className="size-4" />
+				</button>
+			)}
 
-			{/* `type="submit"`, so Enter works without any key handling. */}
+			{/*
+			 * 24px rather than the brief's 20px. The circle is decorative at that
+			 * size but it is also the only submit control on the screen, and 20px
+			 * is a small target for a thumb. The bar grew to absorb the difference
+			 * rather than the arrow shrinking.
+			 */}
 			<button
 				type="submit"
 				disabled={disabled || value.trim().length === 0}
 				aria-label="Send"
 				className={cx(
-					"shrink-0 rounded-full p-2 transition-colors disabled:cursor-not-allowed",
+					"grid size-6 shrink-0 place-items-center rounded-full transition-opacity disabled:cursor-not-allowed",
 					filled
-						? "bg-teal text-forest hover:opacity-90 disabled:bg-cream/20 disabled:text-cream/60"
-						: "bg-forest text-cream hover:bg-forest/90 disabled:bg-shell disabled:text-muted dark:bg-cream dark:text-forest dark:disabled:bg-night-raised dark:disabled:text-night-muted",
+						? "bg-teal text-white hover:opacity-90 disabled:bg-cream/25 disabled:text-cream/60"
+						: "bg-forest text-cream hover:bg-forest/90 disabled:bg-shell disabled:text-muted dark:bg-cream dark:text-forest dark:disabled:bg-night dark:disabled:text-night-muted",
 				)}
 			>
-				<ArrowUpIcon className="size-4" />
+				<ArrowUpIcon className="size-3" />
 			</button>
 		</form>
 	);

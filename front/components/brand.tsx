@@ -7,7 +7,11 @@
  * Every icon is a plain 24x24 stroke drawing on `currentColor` at 1.5, so an
  * icon inherits the colour of the text it sits next to and one `<svg>` covers
  * every size via `size-*`. Keeping them in one file rather than pulling a
- * dependency is deliberate: there are eleven of them and they never change.
+ * dependency is deliberate: there are eighteen of them and they never change.
+ *
+ * Nothing here imports `cx` from `primitives.tsx`. That file is a client module,
+ * so importing a function out of it would turn this file's exports into client
+ * references and put the brand mark in the client bundle for nothing.
  */
 
 /* ------------------------------------------------------------------ helix -- */
@@ -61,9 +65,17 @@ export const HelixIcon = ({
 );
 
 /**
- * The wordmark lockup: the name in the display serif, the category in a small
- * tracked sans. The tracking on the lower line is what separates it from the
- * name -- they are deliberately different treatments of the same two words.
+ * The logo lockup, stacked and centred: the helix above, the name below it, and
+ * the category under that.
+ *
+ * The brief stacks these rather than setting the mark beside the name, and in a
+ * 150px sidebar it has to: "GENE PILOT" at 12px with any tracking is about 90px,
+ * so there is no room left for a 22px icon in the same row.
+ *
+ * Sizes are floored rather than literal. The brief asks for 7-8px on the
+ * category line and 10-12px on the sidebar labels; 8px is below what a 1x
+ * laptop renders legibly, so the category line is 10px and the labels are 11px.
+ * See the type-scale note in the README.
  */
 export const Wordmark = ({
 	compact = false,
@@ -73,12 +85,15 @@ export const Wordmark = ({
 	compact?: boolean;
 	className?: string;
 }) => (
-	<span className={className}>
-		<span className="wordmark block text-[15px] leading-none text-forest dark:text-night-text">
+	<span className={`flex flex-col items-center text-center ${className ?? ""}`}>
+		<HelixIcon className="size-6 shrink-0" />
+
+		<span className="wordmark mt-2 block text-[12px] leading-none text-forest dark:text-night-text">
 			Gene Pilot
 		</span>
+
 		{compact ? null : (
-			<span className="mt-1 block text-[9px] font-medium uppercase tracking-[0.22em] text-muted">
+			<span className="mt-1.5 block text-[10px] font-semibold uppercase tracking-[0.14em] text-muted dark:text-night-muted">
 				Research Tool
 			</span>
 		)}

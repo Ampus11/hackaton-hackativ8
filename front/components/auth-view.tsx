@@ -55,7 +55,7 @@ export function AuthView({ onAuthenticated }: { onAuthenticated: (user: User) =>
 				 * The heading names the *task*, not the product. The shell already
 				 * carries the wordmark directly above this on every layout, so
 				 * repeating it here would be the same three words twice in one
-				 * viewport. Serif to match the landing page's voice.
+				 * viewport. Display type to match the home screen's voice.
 				 */}
 				<h1 className="font-display text-2xl font-semibold tracking-tight text-forest dark:text-night-text">
 					{isRegister ? "Create an account" : "Sign in"}

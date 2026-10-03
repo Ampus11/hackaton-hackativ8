@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Geist_Mono, Instrument_Sans } from "next/font/google";
+import { Geist_Mono, Instrument_Sans } from "next/font/google";
 
 import "./globals.css";
 
@@ -8,18 +8,13 @@ import "./globals.css";
  * Google. `variable` puts each family on a CSS variable so globals.css can hand
  * them to Tailwind and the whole app inherits them from one place.
  *
- * Fraunces is loaded as a variable font with its weight axis only. It also
- * carries SOFT and WONK, which next/font will not accept a value for in
- * TypeScript, and without them requested they are not in the subset -- so CSS
- * cannot reach them either. Optical sizing is set in globals.css instead, which
- * is the axis that actually matters at heading sizes.
+ * Two families, not three. The brief asks for "a modern clean sans-serif font
+ * similar to Inter, Poppins or Montserrat" and lists no serif anywhere in its
+ * type hierarchy, so the serif that used to carry the headings and the wordmark
+ * is gone. Instrument Sans is the whole voice; Geist Mono is there only because
+ * a sequence, a count and an accession are read character by character, and a
+ * proportional sans makes them harder to line up.
  */
-const fraunces = Fraunces({
-	subsets: ["latin"],
-	variable: "--font-fraunces",
-	display: "swap",
-});
-
 const instrumentSans = Instrument_Sans({
 	subsets: ["latin"],
 	variable: "--font-instrument-sans",
@@ -69,8 +64,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
+	// The charcoal outer screen, not the cream container -- it is what a phone
+	// browser paints before the page arrives.
 	themeColor: [
-		{ media: "(prefers-color-scheme: light)", color: "#FFF6E6" },
+		{ media: "(prefers-color-scheme: light)", color: "#1E1E1E" },
 		{ media: "(prefers-color-scheme: dark)", color: "#02282B" },
 	],
 };
@@ -79,7 +76,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
 	return (
 		<html
 			lang="en"
-			className={`${fraunces.variable} ${instrumentSans.variable} ${geistMono.variable} h-full antialiased`}
+			className={`${instrumentSans.variable} ${geistMono.variable} h-full antialiased`}
 		>
 			<body className="flex min-h-full flex-col">{children}</body>
 		</html>

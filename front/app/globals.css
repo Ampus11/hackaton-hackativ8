@@ -3,22 +3,25 @@
 /* ------------------------------------------------------------------ fonts -- */
 
 /*
- * Three families, each with one job.
+ * Two families, each with one job.
  *
- *   --font-display  Fraunces        headings and the wordmark. A serif is the
- *                                     main signal that this is a research tool
- *                                     and not a dashboard; it also keeps the
- *                                     wordmark from reading as a SaaS logo.
- *   --font-sans     Instrument Sans body copy, labels, buttons.
- *   --font-mono     Geist Mono      sequences, counts, accessions, lengths,
- *                                     dates, coordinates -- anything a reader
- *                                     might compare character by character.
+ *   --font-sans     Instrument Sans  everything. The brief asks for "a modern
+ *                                  clean sans-serif font similar to Inter,
+ *                                  Poppins or Montserrat", so this product has
+ *                                  no serif in it at all. `--font-display` is
+ *                                  kept as an alias rather than a second
+ *                                  family: the call sites were written when the
+ *                                  heading was a serif, and renaming every one of
+ *                                  them to restate that it is not is churn.
+ *   --font-mono     Geist Mono       sequences, counts, accessions, lengths,
+ *                                  dates -- anything a reader might compare
+ *                                  character by character.
  *
  * `inline` because each points at a variable next/font writes onto <html>; the
  * utility has to read the value at use time rather than capture it here.
  */
 @theme inline {
-	--font-display: var(--font-fraunces), ui-serif, Georgia, serif;
+	--font-display: var(--font-instrument-sans), ui-sans-serif, system-ui, sans-serif;
 	--font-sans: var(--font-instrument-sans), ui-sans-serif, system-ui, sans-serif;
 	--font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
 }
@@ -27,43 +30,56 @@
 
 @theme {
 	/* ---------------------------------------------------------- brand --- */
-	/* Verbatim from the palette. Do not shade these; derive from them below. */
-	--color-cream: #ffebcb; /* Background  */
-	--color-teal: #21a179; /* Primary    */
-	--color-forest: #023436; /* Text        */
-	--color-copper: #a76d60; /* Accent      */
-	--color-rust: #601700; /* Second. text*/
+	/*
+	 * The six colours the brief fixes, used verbatim. Everything below is
+	 * derived from these; nothing new was invented.
+	 *
+	 *   #FFEBCB cream    the app surface           14.29:1 on charcoal
+	 *   #21A179 teal     primary, helix, submit
+	 *   #023436 forest   all text, the Login pill  11.63:1 on cream
+	 *   #A76660 dust     secondary accent           3.82:1 on cream
+	 *   #6D2700 brown    drop zone, composer        9.28:1 on cream
+	 *   #1E1E1E charcoal the outer screen
+	 */
+	--color-cream: #ffebcb;
+	--color-teal: #21a179;
+	--color-forest: #023436;
+	--color-dust: #a76660;
+	--color-brown: #6d2700;
+	--color-charcoal: #1e1e1e;
 
 	/*
-	 * Two shades of the same hue, and the split is measured, not aesthetic.
-	 * Against `--color-cream`, the page background:
+	 * One derived shade, and the split is measured rather than aesthetic.
+	 * Against `--color-cream`, the app surface:
 	 *
 	 *   #21A179 teal   -> 2.80:1   below the 3:1 floor for a stroke
 	 *   #157F5A        -> 4.27:1   clears it, and carries white text at 4.98:1
 	 *
-	 * So `teal` is a *mark* colour -- the helix, large display type, filled
-	 * shapes -- and never a border, a focus ring or a button with small text on
-	 * it. `teal-ink` is the teal that has to do work. Every other pairing is
-	 * forest on cream (11.63:1) or cream on forest.
+	 * So `teal` is a *mark* colour -- the helix, the submit button -- and never
+	 * a border or a focus ring. `teal-ink` is the teal that draws a line.
+	 * Everything else is forest on cream at 11.63:1.
 	 */
 	--color-teal-ink: #157f5a;
-	--color-muted: #6f6250;
+	--color-muted: #6f6250; /* 5.09:1 on cream */
 
 	/* ------------------------------------------------------- surfaces --- */
 	/*
 	 * Warm neutrals mixed from the palette rather than borrowed from a grey
 	 * scale. A neutral grey next to this cream reads as dirt; these carry the
-	 * same hue family so the whole page stays one temperature.
+	 * same hue family so the whole app stays one temperature. Needed because
+	 * the brief fixes six colours and none of them can carry a hairline.
 	 */
 	--color-paper: #fffcf7; /* raised surface: cards, panels */
-	--color-shell: #fff6e6; /* page background, one step off cream */
+	--color-shell: #fff6e6; /* one step off cream, for inset areas */
 	--color-line: #eadcc2; /* hairline */
-	--color-line-strong: #d9c6a2; /* emphasised border, dashed */
+	--color-line-strong: #d9c6a2; /* emphasised border */
 
 	/*
 	 * Dark mode reuses the palette rather than inventing a second theme: the
 	 * dark forest becomes the background and the cream becomes the text, which
-	 * is the same 11.63:1 pair as the light theme, inverted.
+	 * is the same 11.63:1 pair as the light theme, inverted. The brief does not
+	 * ask for it, but leaving `prefers-color-scheme: dark` unhandled would
+	 * render a cream app on a dark OS in one of the two states anyway.
 	 */
 	--color-night: #02282b;
 	--color-night-raised: #07383b;
@@ -79,8 +95,14 @@
 		-webkit-text-size-adjust: 100%;
 	}
 
+	/*
+	 * The body is the *outer screen*, not the app. The brief puts a cream
+	 * container in the middle of a charcoal field, so the charcoal belongs here
+	 * and the cream belongs on the container -- which is why the frame lives in
+	 * `app-shell.tsx` and not in this rule.
+	 */
 	body {
-		background-color: var(--color-shell);
+		background-color: var(--color-charcoal);
 		color: var(--color-forest);
 		font-family: var(--font-sans);
 		text-rendering: optimizeLegibility;
@@ -130,20 +152,24 @@
 /* -------------------------------------------------------------- utilities -- */
 
 @layer utilities {
-	/* Display type: the serif, optically balanced, never letter-spaced. */
+	/*
+	 * Headings. An alias for the sans stack, kept so the call sites written when
+	 * this was a serif still say "this is display type" rather than nothing.
+	 */
 	.font-display {
 		font-family: var(--font-display);
-		font-optical-sizing: auto;
+		letter-spacing: -0.011em;
 	}
 
 	/*
-	 * The wordmark lockup: all-caps serif over a spaced sans line. Set as one
-	 * utility so the two lines can never drift out of alignment.
+	 * The wordmark lockup: all-caps, tight, with the tracking pulled *in* at
+	 * this size. Wide tracking is right for a wordmark set at 40px and wrong at
+	 * 13px, where the same value turns the two words into "G E N E".
 	 */
 	.wordmark {
 		font-family: var(--font-display);
 		font-weight: 600;
-		letter-spacing: 0.02em;
+		letter-spacing: 0.06em;
 		text-transform: uppercase;
 	}
 
